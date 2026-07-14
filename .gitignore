@@ -1,13 +1,39 @@
+# Node.js and web build output
 node_modules/
 dist/
-.DS_Store
-*.local
 coverage/
+*.local
 
-# Xcode user-specific state and build output
-ios/App/DerivedData/
+# macOS
+.DS_Store
+
+# Xcode user settings and build output
+xcuserdata/
+DerivedData/
 ios/App/build/
-ios/App/*.xcworkspace/xcuserdata/
-ios/App/*.xcodeproj/xcuserdata/
-ios/App/*.xcodeproj/project.xcworkspace/xcuserdata/
-ios/App/*.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
+ios/App/output/
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Playgrounds
+timeline.xctimeline
+playground.xcworkspace
+
+# Swift Package Manager caches
+.build/
+.swiftpm/
+Packages/
+
+# CocoaPods output is not part of the SPM-based project
+ios/App/Pods/
+
+# Carthage
+Carthage/Build/
+
+# fastlane generated reports
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output

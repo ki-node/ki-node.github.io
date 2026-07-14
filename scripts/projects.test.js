@@ -17,7 +17,7 @@ import { validateEmbeddedProject } from './validate-embedded-project.mjs';
 const lockedProject = {
   id: 'portfolio',
   repository: 'ki-node/portfolio',
-  commit: 'ce4b2da9096f25d3348b7ca4fdc1ff8457fc908d',
+  commit: '98adfaf4c3278557a6aae12ca7d119d7164df1d5',
   buildCommand: 'npm run build:embedded',
   buildOutput: 'dist-embedded',
   targetPath: 'public/projects/portfolio',
@@ -56,7 +56,7 @@ describe('project lock', () => {
     expect(
       validateProjectLock({
         version: 1,
-        projects: [{ ...lockedProject, commit: 'ce4b2da' }],
+        projects: [{ ...lockedProject, commit: '98adfaf4' }],
       }),
     ).toContain('lock.projects[0].commit: expected a full 40-character SHA');
   });

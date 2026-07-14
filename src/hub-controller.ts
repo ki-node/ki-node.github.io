@@ -6,6 +6,7 @@ import {
   type ProjectId,
 } from './projects';
 import type { HubRuntime } from './runtime';
+import { parsePortfolioLinkMessage } from './bridge-protocol';
 
 interface HubControllerOptions {
   readonly document: Document;
@@ -19,6 +20,7 @@ interface FrameSession {
   readonly element: HTMLIFrameElement;
   readonly onError: () => void;
   readonly onLoad: () => void;
+  readonly onMessage: (event: MessageEvent) => void;
   readonly timeout: number;
 }
 
@@ -262,14 +264,29 @@ export class HubController {
       this.announcer.textContent = `${project.title} ist bereit.`;
     };
     const onError = () => this.showFrameError(frame);
+    const onMessage = (event: MessageEvent) => {
+      if (
+        this.runtime.kind !== 'native' ||
+        this.activeProject?.id !== 'portfolio' ||
+        this.frameSession?.element !== frame ||
+        event.source !== frame.contentWindow
+      ) {
+        return;
+      }
+
+      const message = parsePortfolioLinkMessage(event.data);
+      if (!message) return;
+      void this.runtime.openExternalUrl(message.url);
+    };
     frame.addEventListener('load', onLoad, { once: true });
     frame.addEventListener('error', onError, { once: true });
+    this.window.addEventListener('message', onMessage);
 
     const timeout = this.window.setTimeout(
       () => this.showFrameError(frame),
       this.loadTimeoutMs,
     );
-    this.frameSession = { element: frame, onError, onLoad, timeout };
+    this.frameSession = { element: frame, onError, onLoad, onMessage, timeout };
     this.frameHost.append(frame);
   }
 
@@ -284,10 +301,11 @@ export class HubController {
 
   private removeFrame(): void {
     if (!this.frameSession) return;
-    const { element, onError, onLoad, timeout } = this.frameSession;
+    const { element, onError, onLoad, onMessage, timeout } = this.frameSession;
     this.window.clearTimeout(timeout);
     element.removeEventListener('load', onLoad);
     element.removeEventListener('error', onError);
+    this.window.removeEventListener('message', onMessage);
     element.remove();
     this.frameSession = null;
   }

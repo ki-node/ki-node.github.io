@@ -1,4 +1,13 @@
-import { describe, expect, it } from 'vitest';
+import { AppLauncher } from '@capacitor/app-launcher';
+import { SplashScreen } from '@capacitor/splash-screen';
+import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('@capacitor/app-launcher', () => ({
+  AppLauncher: { openUrl: vi.fn() },
+}));
+vi.mock('@capacitor/splash-screen', () => ({
+  SplashScreen: { hide: vi.fn() },
+}));
 
 import { PROJECT_CATALOG } from './projects';
 import { createHubRuntime } from './runtime';
@@ -22,5 +31,45 @@ describe('Hub runtime', () => {
       './projects/portfolio/index.html',
     );
     expect(runtime.supports('haptics')).toBe(true);
+  });
+
+  it('hands allowed native links to the official system app launcher', async () => {
+    const openUrl = vi
+      .spyOn(AppLauncher, 'openUrl')
+      .mockResolvedValue({ completed: true });
+    const runtime = createHubRuntime('native');
+
+    await expect(
+      runtime.openExternalUrl('mailto:test@example.com'),
+    ).resolves.toBe(true);
+    await expect(
+      runtime.openExternalUrl('https://example.com/path'),
+    ).resolves.toBe(true);
+    await expect(runtime.openExternalUrl('javascript:alert(1)')).resolves.toBe(
+      false,
+    );
+    expect(openUrl).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps native URL and splash APIs unavailable in the web runtime', async () => {
+    const openUrl = vi.spyOn(AppLauncher, 'openUrl');
+    const hide = vi.spyOn(SplashScreen, 'hide');
+    const runtime = createHubRuntime('web');
+
+    await expect(runtime.openExternalUrl('https://example.com')).resolves.toBe(
+      false,
+    );
+    await expect(runtime.hideLaunchScreen()).resolves.toBe(false);
+    expect(openUrl).not.toHaveBeenCalled();
+    expect(hide).not.toHaveBeenCalled();
+  });
+
+  it('hides the native splash through the official plugin', async () => {
+    const hide = vi.spyOn(SplashScreen, 'hide').mockResolvedValue();
+
+    await expect(createHubRuntime('native').hideLaunchScreen()).resolves.toBe(
+      true,
+    );
+    expect(hide).toHaveBeenCalledOnce();
   });
 });

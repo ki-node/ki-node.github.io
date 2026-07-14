@@ -77,6 +77,59 @@ button {
     display: none !important;
 }
 
+.launch-screen {
+    position: fixed;
+    z-index: 1000;
+    inset: 0;
+    display: grid;
+    align-content: center;
+    justify-items: center;
+    gap: 1rem;
+    padding: max(2rem, env(safe-area-inset-top)) 2rem
+        max(2rem, env(safe-area-inset-bottom));
+    color: #f8f3ff;
+    background: #140c22;
+}
+
+.is-hub-ready .launch-screen {
+    display: none;
+}
+
+.launch-screen strong {
+    font-size: 1.65rem;
+    letter-spacing: -0.045em;
+}
+
+.launch-screen__mark {
+    display: flex;
+    width: 4.5rem;
+    height: 4.5rem;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    border: 1px solid rgba(213, 190, 255, 0.22);
+    border-radius: 1.35rem;
+    background: rgba(28, 15, 48, 0.92);
+}
+
+.launch-screen__mark i {
+    width: 0.45rem;
+    border-radius: 999px;
+    background: #a875ff;
+}
+
+.launch-screen__mark i:first-child {
+    height: 1.2rem;
+}
+
+.launch-screen__mark i:nth-child(2) {
+    height: 2.25rem;
+}
+
+.launch-screen__mark i:last-child {
+    height: 1.65rem;
+}
+
 :where(a, button, [tabindex='-1']):focus-visible {
     outline: 3px solid var(--focus);
     outline-offset: 4px;

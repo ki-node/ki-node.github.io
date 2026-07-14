@@ -20,7 +20,8 @@ lokalen Mock-Projekte. Die Architekturentscheidung ist unter
 > [!IMPORTANT]
 > Nach einem frischen Clone muss zwingend zuerst `npm ci` ausgeführt werden, bevor das
 > Xcode-Projekt geöffnet oder gebaut wird. Das lokale Swift-Paket in
-> `ios/App/CapApp-SPM/Package.swift` verweist auf `node_modules/@capacitor/haptics`. Ohne
+> `ios/App/CapApp-SPM/Package.swift` verweist auf lokale Capacitor-Pakete unter `node_modules`,
+> darunter Haptics, App Launcher und Splash Screen. Ohne
 > installierte npm-Abhängigkeiten kann Xcode dieses Paket nicht auflösen.
 
 ```bash
@@ -43,7 +44,7 @@ Stand festgeschrieben:
 
 ```text
 Repository:    ki-node/portfolio
-Commit:        ce4b2da9096f25d3348b7ca4fdc1ff8457fc908d
+Commit:        98adfaf4c3278557a6aae12ca7d119d7164df1d5
 Build-Befehl:  npm run build:embedded
 Ziel:          public/projects/portfolio/
 ```
@@ -79,6 +80,27 @@ Update:
 
 CI erzeugt den Build erneut und schlägt fehl, sobald Lock-Datei, Provenienz oder
 eingechecktes Artefakt voneinander abweichen.
+
+Der aktuell festgeschriebene SHA gehört zum Draft-Feature-Branch des Portfolio-
+Folge-PRs. Nach dessen Merge muss dieser Hub-Branch vor dem Merge noch einmal auf
+den endgültigen Squash-Merge-Commit umgestellt und vollständig synchronisiert
+werden.
+
+## Native Projekt-Bridge und Kaltstart
+
+Der lokale Portfolio-Build meldet ausschließlich `mailto:`- und externe
+`https:`-Links über ein versioniertes `postMessage`-Schema. Der Hub akzeptiert
+diese Nachrichten nur vom aktuell aktiven Portfolio-iframe und öffnet die URL im
+nativen Kontext mit dem offiziellen Capacitor-App-Launcher. Projektkennung,
+Protokollversion, Nachrichtentyp und URL-Scheme werden vor jedem nativen Aufruf
+validiert; die iframe-Sandbox erhält keine Top-Navigationsrechte.
+
+Ein statischer dunkelvioletter ki-node-Launchscreen überbrückt den beobachteten
+kalten Start des WKWebView-Prozesses. Er wird nach Hub-Initialisierung und zwei
+Animation Frames über `@capacitor/splash-screen` ausgeblendet. Die native
+Konfiguration besitzt zusätzlich eine automatische Obergrenze von 15 Sekunden;
+die statische Web-Schicht fällt nach 16 Sekunden zurück. Das verdeckt die
+beobachtete Wartezeit visuell, beschleunigt den WKWebView-Kaltstart aber nicht.
 
 ## Veröffentlichung
 

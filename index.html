@@ -24,6 +24,16 @@
         <title>ki-node – Projekte</title>
     </head>
     <body>
+        <div class="launch-screen" aria-hidden="true" data-launch-screen>
+            <span class="launch-screen__mark"><i></i><i></i><i></i></span>
+            <strong>ki-node</strong>
+        </div>
+        <script>
+            // Mirrors the native 15 s auto-hide ceiling if application JavaScript fails early.
+            window.setTimeout(function () {
+                document.documentElement.classList.add('is-hub-ready');
+            }, 16000);
+        </script>
         <div class="hub-shell" data-hub-shell>
             <header class="site-header">
                 <a class="brand" href="./" aria-label="ki-node Startseite">

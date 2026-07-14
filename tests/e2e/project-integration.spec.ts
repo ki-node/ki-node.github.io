@@ -7,6 +7,30 @@ const simulateNativeCapacitor = async (
   page: import('@playwright/test').Page,
 ) => {
   await page.addInitScript(() => {
+    const bridgeCalls: unknown[] = [];
+    Object.assign(window, { __nativeBridgeCalls: bridgeCalls });
+    Object.defineProperty(window, 'Capacitor', {
+      configurable: true,
+      value: {
+        PluginHeaders: [
+          {
+            name: 'AppLauncher',
+            methods: [{ name: 'openUrl', rtype: 'promise' }],
+          },
+          { name: 'Haptics', methods: [{ name: 'impact', rtype: 'promise' }] },
+          {
+            name: 'SplashScreen',
+            methods: [{ name: 'hide', rtype: 'promise' }],
+          },
+        ],
+        nativePromise(pluginId: string, methodName: string, options: unknown) {
+          bridgeCalls.push({ pluginId, methodName, options });
+          if (pluginId === 'AppLauncher')
+            return Promise.resolve({ completed: true });
+          return Promise.resolve();
+        },
+      },
+    });
     Object.defineProperty(window, 'webkit', {
       configurable: true,
       value: {
@@ -30,6 +54,8 @@ test('native runtime opens the checked-in Portfolio offline and preserves Hub li
 
   await page.goto('/');
   await expect(page.getByText('Native iOS', { exact: true })).toBeVisible();
+  await expect(page.locator('html')).toHaveClass(/is-hub-ready/u);
+  await expect(page.locator('[data-launch-screen]')).toBeHidden();
   const button = portfolioButton(page);
   await button.click();
 
@@ -45,6 +71,42 @@ test('native runtime opens the checked-in Portfolio offline and preserves Hub li
     'data-app-context',
     'embedded',
   );
+
+  await portfolio.getByRole('link', { name: 'Nachricht schreiben' }).click();
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        (
+          window as Window & { __nativeBridgeCalls?: unknown[] }
+        ).__nativeBridgeCalls?.find(
+          (call) =>
+            JSON.stringify(call).includes('AppLauncher') &&
+            JSON.stringify(call).includes('mailto:kontakt@example.com'),
+        ),
+      ),
+    )
+    .toBeTruthy();
+
+  await portfolio.locator('body').evaluate((body) => {
+    const externalLink = document.createElement('a');
+    externalLink.href = 'https://example.com/portfolio';
+    externalLink.textContent = 'Externer Testlink';
+    body.append(externalLink);
+  });
+  await portfolio.getByRole('link', { name: 'Externer Testlink' }).click();
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        (
+          window as Window & { __nativeBridgeCalls?: unknown[] }
+        ).__nativeBridgeCalls?.find(
+          (call) =>
+            JSON.stringify(call).includes('AppLauncher') &&
+            JSON.stringify(call).includes('https://example.com/portfolio'),
+        ),
+      ),
+    )
+    .toBeTruthy();
 
   const hubScrollBefore = await page.evaluate(() => window.scrollY);
   const frameScroll = await iframe.evaluate(async (element) => {

@@ -22,7 +22,7 @@ das lokale Mock-Projekt.
 
 `projects.lock.json` beschreibt eingebettete Projekte mit Repository, vollständigem Commit-SHA,
 erlaubtem Build-Befehl, Build-Ausgabe und lokalem Zielpfad. Der Portfolio-Build stammt exakt aus
-`ki-node/portfolio@ce4b2da9096f25d3348b7ca4fdc1ff8457fc908d`.
+`ki-node/portfolio@98adfaf4c3278557a6aae12ca7d119d7164df1d5`.
 
 `npm run sync:projects` checkt diesen Commit in einem Betriebssystem-Temp-Verzeichnis aus, führt
 im isolierten Checkout `npm ci` und `npm run build:embedded` aus und ersetzt das Hub-Artefakt erst
@@ -44,10 +44,29 @@ JavaScript von der Hub-Oberfläche. Der Hub greift nicht auf `contentDocument` o
 iframe-Dokumentstrukturen zu. Externe Navigation kann wegen der iframe- und Sandbox-Grenze nicht
 unkontrolliert die Produkthülle ersetzen.
 
-Spätere Kommunikation erfolgt ausschließlich über eine versionierte Nachrichtenbrücke. Ein
-Protokollname und eine erste Versionsnummer sind bereits als Vertrag reserviert; Nachrichten- und
-Capability-Handler sind noch nicht implementiert. Native Haptik für die Hub-Oberfläche bleibt
-zentral im Hub. Clipboard, Share, Dateien und externe Links sind nicht Teil dieses Schritts.
+Kommunikation erfolgt ausschließlich über eine versionierte Nachrichtenbrücke. Das Portfolio
+sendet vollständige `mailto:`- oder externe `https:`-URLs zusammen mit Projektkennung,
+Protokollversion und Nachrichtentyp. Der Hub akzeptiert nur Nachrichten des aktuell aktiven
+Portfolio-iframe, validiert das Schema und übergibt erlaubte Links im nativen Kontext an den
+offiziellen Capacitor-App-Launcher. Fremde Fenster, Projekte, Versionen, Nachrichtentypen und
+Schemes werden verworfen; beim Entfernen des iframe wird auch der Listener entfernt. Die Sandbox
+erhält keine allgemeine Top-Navigation. Native Haptik für die Hub-Oberfläche bleibt zentral;
+Clipboard, Share und Dateien sind weiterhin nicht implementiert.
+
+## Launchscreen und WKWebView-Kaltstart
+
+Der erste physische Gerätetest zeigte bei einem kalten WKWebView-Prozess ungefähr zehn Sekunden
+schwarze Fläche. Ein markenkonformer nativer Launchscreen und eine identische statische Web-Schicht
+decken diesen Zeitraum ab. Der Hub blendet den offiziellen Capacitor-Splash erst aus, nachdem der
+Controller initialisiert wurde und zwei Animation Frames möglich waren. `launchAutoHide` bleibt mit
+einer 15-Sekunden-Obergrenze aktiv; damit blockiert ein früher JavaScriptfehler den nativen Splash
+nicht unbegrenzt. Diese Maßnahme verbessert die visuelle Kontinuität, behauptet aber keine
+Beschleunigung des zugrunde liegenden WKWebView-Kaltstarts.
+
+Der erste physische Test gilt weiterhin als fehlgeschlagen. Hub-PR #4 bleibt Draft, bis Layout,
+Touch-Reticle, Link-Bridge und Kaltstartdarstellung erneut auf dem physischen iPhone erfolgreich
+geprüft wurden. Nach dem Merge des Portfolio-Folge-PRs muss der Lock-SHA außerdem auf dessen
+endgültigen Squash-Merge-Commit aktualisiert werden.
 
 ## Warum die native App keine Projekte live von GitHub Pages lädt
 

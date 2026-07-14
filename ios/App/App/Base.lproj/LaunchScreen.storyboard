@@ -1,32 +1,73 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="17132" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="01J-lp-oVM">
-    <device id="retina4_7" orientation="portrait" appearance="light"/>
+    <device id="retina4_7" orientation="portrait" appearance="dark"/>
     <dependencies>
         <deployment identifier="iOS"/>
         <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="17105"/>
-        <capability name="System colors in document resources" minToolsVersion="11.0"/>
+        <capability name="Safe area layout guides" minToolsVersion="9.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <scenes>
-        <!--View Controller-->
         <scene sceneID="EHf-IW-A2E">
             <objects>
                 <viewController id="01J-lp-oVM" sceneMemberID="viewController">
-                    <imageView key="view" userInteractionEnabled="NO" contentMode="scaleAspectFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="Splash" id="snD-IY-ifK">
+                    <view key="view" contentMode="scaleToFill" id="root-view">
                         <rect key="frame" x="0.0" y="0.0" width="375" height="667"/>
-                        <autoresizingMask key="autoresizingMask"/>
-                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
-                    </imageView>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="launch-mark">
+                                <rect key="frame" x="151.5" y="261.5" width="72" height="72"/>
+                                <subviews>
+                                    <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="bar-one">
+                                        <rect key="frame" x="20" y="26" width="7" height="20"/>
+                                        <color key="backgroundColor" red="0.6588235294" green="0.4588235294" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                    </view>
+                                    <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="bar-two">
+                                        <rect key="frame" x="32.5" y="17" width="7" height="38"/>
+                                        <color key="backgroundColor" red="0.6588235294" green="0.4588235294" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                    </view>
+                                    <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="bar-three">
+                                        <rect key="frame" x="45" y="22" width="7" height="28"/>
+                                        <color key="backgroundColor" red="0.6588235294" green="0.4588235294" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                    </view>
+                                </subviews>
+                                <color key="backgroundColor" red="0.1098039216" green="0.0588235294" blue="0.1882352941" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="72" id="mark-width"/>
+                                    <constraint firstAttribute="height" constant="72" id="mark-height"/>
+                                    <constraint firstItem="bar-one" firstAttribute="centerY" secondItem="launch-mark" secondAttribute="centerY" id="bar-one-y"/>
+                                    <constraint firstItem="bar-one" firstAttribute="centerX" secondItem="launch-mark" secondAttribute="centerX" constant="-12.5" id="bar-one-x"/>
+                                    <constraint firstItem="bar-one" firstAttribute="width" constant="7" id="bar-one-width"/>
+                                    <constraint firstItem="bar-one" firstAttribute="height" constant="20" id="bar-one-height"/>
+                                    <constraint firstItem="bar-two" firstAttribute="centerY" secondItem="launch-mark" secondAttribute="centerY" id="bar-two-y"/>
+                                    <constraint firstItem="bar-two" firstAttribute="centerX" secondItem="launch-mark" secondAttribute="centerX" id="bar-two-x"/>
+                                    <constraint firstItem="bar-two" firstAttribute="width" constant="7" id="bar-two-width"/>
+                                    <constraint firstItem="bar-two" firstAttribute="height" constant="38" id="bar-two-height"/>
+                                    <constraint firstItem="bar-three" firstAttribute="centerY" secondItem="launch-mark" secondAttribute="centerY" id="bar-three-y"/>
+                                    <constraint firstItem="bar-three" firstAttribute="centerX" secondItem="launch-mark" secondAttribute="centerX" constant="12.5" id="bar-three-x"/>
+                                    <constraint firstItem="bar-three" firstAttribute="width" constant="7" id="bar-three-width"/>
+                                    <constraint firstItem="bar-three" firstAttribute="height" constant="28" id="bar-three-height"/>
+                                </constraints>
+                            </view>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" text="ki-node" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="launch-name">
+                                <rect key="frame" x="141" y="352.5" width="93" height="34"/>
+                                <fontDescription key="fontDescription" type="system" weight="semibold" pointSize="28"/>
+                                <color key="textColor" red="0.9725490196" green="0.9529411765" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                            </label>
+                        </subviews>
+                        <viewLayoutGuide key="safeArea" id="safe-area"/>
+                        <color key="backgroundColor" red="0.0784313725" green="0.0470588235" blue="0.1333333333" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                        <constraints>
+                            <constraint firstItem="launch-mark" firstAttribute="centerX" secondItem="root-view" secondAttribute="centerX" id="mark-center-x"/>
+                            <constraint firstItem="launch-mark" firstAttribute="centerY" secondItem="root-view" secondAttribute="centerY" constant="-36" id="mark-center-y"/>
+                            <constraint firstItem="launch-name" firstAttribute="top" secondItem="launch-mark" secondAttribute="bottom" constant="19" id="name-top"/>
+                            <constraint firstItem="launch-name" firstAttribute="centerX" secondItem="root-view" secondAttribute="centerX" id="name-center-x"/>
+                        </constraints>
+                    </view>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="iYj-Kq-Ea1" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
             <point key="canvasLocation" x="53" y="375"/>
         </scene>
     </scenes>
-    <resources>
-        <image name="Splash" width="1366" height="1366"/>
-        <systemColor name="systemBackgroundColor">
-            <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-        </systemColor>
-    </resources>
 </document>

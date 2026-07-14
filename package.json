@@ -22,9 +22,11 @@
     "check": "npm run check:projects && npm run check:ios-signing && npm run typecheck && npm run lint && npm run format:check && npm run test"
   },
   "dependencies": {
+    "@capacitor/app-launcher": "8.0.1",
     "@capacitor/core": "8.4.1",
     "@capacitor/haptics": "8.0.2",
-    "@capacitor/ios": "8.4.1"
+    "@capacitor/ios": "8.4.1",
+    "@capacitor/splash-screen": "8.0.1"
   },
   "devDependencies": {
     "@capacitor/cli": "8.4.1",

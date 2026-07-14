@@ -9,6 +9,10 @@ const simulateNativeCapacitor = async (
   await page.addInitScript(() => {
     const bridgeCalls: unknown[] = [];
     Object.assign(window, { __nativeBridgeCalls: bridgeCalls });
+    Object.defineProperty(window, 'CapacitorCustomPlatform', {
+      configurable: true,
+      value: { name: 'ios' },
+    });
     Object.defineProperty(window, 'Capacitor', {
       configurable: true,
       value: {
@@ -28,14 +32,6 @@ const simulateNativeCapacitor = async (
           if (pluginId === 'AppLauncher')
             return Promise.resolve({ completed: true });
           return Promise.resolve();
-        },
-      },
-    });
-    Object.defineProperty(window, 'webkit', {
-      configurable: true,
-      value: {
-        messageHandlers: {
-          bridge: { postMessage: () => undefined },
         },
       },
     });

@@ -671,6 +671,11 @@ body.is-project-open {
     background: var(--surface-solid);
 }
 
+.frame-host iframe:not([data-frame-state='ready']) {
+    opacity: 0;
+    pointer-events: none;
+}
+
 .load-state,
 .error-state {
     position: absolute;

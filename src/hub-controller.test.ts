@@ -77,6 +77,35 @@ describe('HubController', () => {
       document.querySelector('[data-project-view]')?.hasAttribute('hidden'),
     ).toBe(false);
     expect(document.querySelectorAll('iframe')).toHaveLength(1);
+    expect(frame?.hasAttribute('hidden')).toBe(false);
+    expect(frame?.dataset.frameState).toBe('loading');
+    expect(frame?.getAttribute('aria-hidden')).toBe('true');
+    expect(frame?.hasAttribute('inert')).toBe(true);
+    expect(frame?.tabIndex).toBe(-1);
+    expect(
+      document.querySelector('[data-frame-host]')?.getAttribute('aria-busy'),
+    ).toBe('true');
+    expect(
+      document.querySelector('[data-load-state]')?.hasAttribute('hidden'),
+    ).toBe(false);
+  });
+
+  it('makes the laid-out iframe accessible only after load', () => {
+    controller.openProject('portfolio', null, 'none');
+    const frame = document.querySelector<HTMLIFrameElement>('iframe');
+
+    frame?.dispatchEvent(new Event('load'));
+
+    expect(frame?.dataset.frameState).toBe('ready');
+    expect(frame?.hasAttribute('aria-hidden')).toBe(false);
+    expect(frame?.hasAttribute('inert')).toBe(false);
+    expect(frame?.hasAttribute('tabindex')).toBe(false);
+    expect(
+      document.querySelector('[data-frame-host]')?.hasAttribute('aria-busy'),
+    ).toBe(false);
+    expect(
+      document.querySelector('[data-load-state]')?.hasAttribute('hidden'),
+    ).toBe(true);
   });
 
   it('opens, closes and reopens the native Portfolio build', () => {
@@ -205,7 +234,35 @@ describe('HubController', () => {
     expect(
       document.querySelector('[data-error-state]')?.hasAttribute('hidden'),
     ).toBe(false);
-    expect(document.querySelector('iframe')?.hasAttribute('hidden')).toBe(true);
+    expect(document.querySelector('iframe')?.hasAttribute('hidden')).toBe(
+      false,
+    );
+    expect(
+      document.querySelector('iframe')?.getAttribute('data-frame-state'),
+    ).toBe('error');
+    expect(document.querySelector('iframe')?.getAttribute('aria-hidden')).toBe(
+      'true',
+    );
+    expect(document.querySelector('iframe')?.hasAttribute('inert')).toBe(true);
+  });
+
+  it('retries an error with a new laid-out but initially inaccessible iframe', () => {
+    controller.openProject('portfolio', null, 'none');
+    const failedFrame = document.querySelector<HTMLIFrameElement>('iframe');
+    failedFrame?.dispatchEvent(new Event('error'));
+
+    document.querySelector<HTMLButtonElement>('[data-retry-project]')?.click();
+    const retryFrame = document.querySelector<HTMLIFrameElement>('iframe');
+
+    expect(retryFrame).not.toBe(failedFrame);
+    expect(failedFrame?.isConnected).toBe(false);
+    expect(retryFrame?.hasAttribute('hidden')).toBe(false);
+    expect(retryFrame?.dataset.frameState).toBe('loading');
+    expect(retryFrame?.getAttribute('aria-hidden')).toBe('true');
+    expect(retryFrame?.hasAttribute('inert')).toBe(true);
+    expect(
+      document.querySelector('[data-load-state]')?.hasAttribute('hidden'),
+    ).toBe(false);
   });
 
   it('accepts allowed links only from the active native Portfolio iframe', () => {

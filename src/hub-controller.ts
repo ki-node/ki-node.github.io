@@ -268,14 +268,22 @@ export class HubController {
       'allow-forms allow-modals allow-same-origin allow-scripts',
     );
     frame.setAttribute('data-project-frame', project.id);
-    frame.hidden = true;
+    frame.dataset.frameState = 'loading';
+    frame.setAttribute('aria-hidden', 'true');
+    frame.setAttribute('inert', '');
+    frame.tabIndex = -1;
+    this.frameHost.setAttribute('aria-busy', 'true');
 
     const onLoad = () => {
       if (this.frameSession?.element !== frame) return;
       this.window.clearTimeout(this.frameSession.timeout);
       this.loadState.hidden = true;
       this.errorState.hidden = true;
-      frame.hidden = false;
+      frame.dataset.frameState = 'ready';
+      frame.removeAttribute('aria-hidden');
+      frame.removeAttribute('inert');
+      frame.removeAttribute('tabindex');
+      this.frameHost.removeAttribute('aria-busy');
       this.announcer.textContent = `${project.title} ist bereit.`;
     };
     const onError = () => this.showFrameError(frame);
@@ -308,7 +316,11 @@ export class HubController {
   private showFrameError(frame: HTMLIFrameElement): void {
     if (this.frameSession?.element !== frame) return;
     this.window.clearTimeout(this.frameSession.timeout);
-    frame.hidden = true;
+    frame.dataset.frameState = 'error';
+    frame.setAttribute('aria-hidden', 'true');
+    frame.setAttribute('inert', '');
+    frame.tabIndex = -1;
+    this.frameHost.removeAttribute('aria-busy');
     this.loadState.hidden = true;
     this.errorState.hidden = false;
     this.announcer.textContent = 'Projekt konnte nicht geladen werden.';
@@ -323,6 +335,7 @@ export class HubController {
     this.window.removeEventListener('message', onMessage);
     element.remove();
     this.frameSession = null;
+    this.frameHost.removeAttribute('aria-busy');
   }
 
   private setLoadingState(): void {

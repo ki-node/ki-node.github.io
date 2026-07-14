@@ -78,6 +78,80 @@ const simulateNativeCapacitor = async (
   });
 };
 
+test('lays out the iframe behind an inaccessible loading layer before load', async ({
+  page,
+}) => {
+  await simulateNativeCapacitor(page);
+  let releaseRequest: () => void = () => undefined;
+  const requestGate = new Promise<void>((resolve) => {
+    releaseRequest = resolve;
+  });
+  let confirmRequest: () => void = () => undefined;
+  const requestStarted = new Promise<void>((resolve) => {
+    confirmRequest = resolve;
+  });
+
+  await page.route('**/projects/portfolio/index.html', async (route) => {
+    confirmRequest();
+    await requestGate;
+    await route.continue();
+  });
+  await page.goto('/');
+  await portfolioButton(page).click();
+  await requestStarted;
+
+  const iframe = page.locator('iframe[data-project-frame="portfolio"]');
+  await expect(iframe).toHaveAttribute('data-frame-state', 'loading');
+  await expect(iframe).toHaveAttribute('aria-hidden', 'true');
+  await expect(iframe).toHaveAttribute('inert', '');
+  await expect(iframe).toHaveAttribute('tabindex', '-1');
+  await expect(page.locator('[data-frame-host]')).toHaveAttribute(
+    'aria-busy',
+    'true',
+  );
+  await expect(page.locator('[data-load-state]')).toBeVisible();
+
+  const loadingGeometry = await page.evaluate(() => {
+    const frame = document
+      .querySelector<HTMLIFrameElement>('[data-project-frame="portfolio"]')
+      ?.getBoundingClientRect();
+    const host = document
+      .querySelector<HTMLElement>('[data-frame-host]')
+      ?.getBoundingClientRect();
+    const centerX = (frame?.left ?? 0) + (frame?.width ?? 0) / 2;
+    const centerY = (frame?.top ?? 0) + (frame?.height ?? 0) / 2;
+    const coveringElement = document.elementFromPoint(centerX, centerY);
+
+    return {
+      frameHeight: frame?.height ?? 0,
+      frameWidth: frame?.width ?? 0,
+      hostHeight: host?.height ?? 0,
+      hostWidth: host?.width ?? 0,
+      isCovered: Boolean(coveringElement?.closest('[data-load-state]')),
+    };
+  });
+
+  expect(loadingGeometry.frameWidth).toBeGreaterThan(0);
+  expect(loadingGeometry.frameHeight).toBeGreaterThan(0);
+  expect(loadingGeometry.frameWidth).toBeCloseTo(loadingGeometry.hostWidth, 0);
+  expect(loadingGeometry.frameHeight).toBeCloseTo(
+    loadingGeometry.hostHeight,
+    0,
+  );
+  expect(loadingGeometry.isCovered).toBe(true);
+
+  releaseRequest();
+  await expect(iframe).toHaveAttribute('data-frame-state', 'ready');
+  await expect(iframe).not.toHaveAttribute('aria-hidden', 'true');
+  await expect(iframe).not.toHaveAttribute('inert', '');
+  await expect(iframe).not.toHaveAttribute('tabindex', '-1');
+  await expect(page.locator('[data-frame-host]')).not.toHaveAttribute(
+    'aria-busy',
+    'true',
+  );
+  await expect(page.locator('[data-load-state]')).toBeHidden();
+});
+
 test('native runtime opens the checked-in Portfolio offline and preserves Hub lifecycle', async ({
   page,
 }) => {

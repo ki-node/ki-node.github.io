@@ -6,31 +6,183 @@
             name="viewport"
             content="width=device-width, initial-scale=1, viewport-fit=cover"
         />
-        <meta name="theme-color" content="#f5f3ff" />
-        <title>ki-node</title>
-      <script type="module" crossorigin src="/assets/index-CfRu5E1y.js"></script>
-      <link rel="stylesheet" crossorigin href="/assets/index-DuM0Ugdv.css">
+        <meta
+            name="description"
+            content="ki-node bündelt Portfolio, Poster und Blackbox in einem gemeinsamen Hub für Web und iPhone."
+        />
+        <meta name="color-scheme" content="light dark" />
+        <meta
+            name="theme-color"
+            content="#f3f0ff"
+            media="(prefers-color-scheme: light)"
+        />
+        <meta
+            name="theme-color"
+            content="#0b0812"
+            media="(prefers-color-scheme: dark)"
+        />
+        <title>ki-node – Projekte</title>
+      <script type="module" crossorigin src="./assets/index-dzxjQf-1.js"></script>
+      <link rel="stylesheet" crossorigin href="./assets/index-CvlIgQWo.css">
     </head>
     <body>
-        <main class="app-shell">
-            <section class="status-card" aria-labelledby="app-title">
-                <p class="eyebrow">iPhone App</p>
-                <h1 id="app-title">ki-node</h1>
-                <p class="status-copy">Native Hub bereit</p>
-                <button
-                    class="haptics-button"
-                    type="button"
-                    data-haptics-button
+        <div class="hub-shell" data-hub-shell>
+            <header class="site-header">
+                <a class="brand" href="./" aria-label="ki-node Startseite">
+                    <span class="brand__mark" aria-hidden="true"
+                        ><i></i><i></i><i></i
+                    ></span>
+                    <span>ki-node</span>
+                </a>
+                <span class="runtime-badge" data-runtime-label
+                    >Hub wird vorbereitet</span
                 >
-                    Haptik testen
-                </button>
-                <p
-                    class="sr-only"
-                    role="status"
-                    aria-live="polite"
-                    data-status
-                ></p>
+            </header>
+
+            <main class="catalog-view" id="main" data-catalog-view>
+                <section class="hero" aria-labelledby="hub-title">
+                    <div class="hero__copy">
+                        <p class="eyebrow">Ein Hub. Drei Experimente.</p>
+                        <h1 id="hub-title" tabindex="-1">
+                            Ideen, die man<br /><em>anfassen</em> kann.
+                        </h1>
+                        <p class="hero__intro">
+                            Eine gemeinsame Oberfläche für unabhängige Projekte
+                            – im Browser und als native iPhone-App.
+                        </p>
+                    </div>
+                    <div class="hero__signal" aria-hidden="true">
+                        <span class="hero__orbit"></span>
+                        <span class="hero__node hero__node--one"></span>
+                        <span class="hero__node hero__node--two"></span>
+                        <span class="hero__node hero__node--three"></span>
+                        <strong>03</strong>
+                        <small>nodes online</small>
+                    </div>
+                </section>
+
+                <section class="projects" aria-labelledby="projects-title">
+                    <div class="section-heading">
+                        <div>
+                            <p class="eyebrow">Projektkatalog</p>
+                            <h2 id="projects-title">Wähle einen Node.</h2>
+                        </div>
+                        <p>
+                            Jedes Projekt bleibt eigenständig. Der Hub hält
+                            alles zusammen.
+                        </p>
+                    </div>
+                    <div class="project-grid" data-project-list></div>
+                </section>
+
+                <footer class="site-footer">
+                    <span>ki-node / 2026</span>
+                    <span>Web + native iOS</span>
+                </footer>
+            </main>
+
+            <section
+                class="project-view"
+                data-project-view
+                aria-labelledby="active-project-title"
+                hidden
+            >
+                <header class="project-toolbar">
+                    <button
+                        class="back-button"
+                        type="button"
+                        data-close-project
+                    >
+                        <span aria-hidden="true">←</span>
+                        <span>Projekte</span>
+                    </button>
+                    <div class="project-toolbar__title">
+                        <p data-active-project-kicker>Lokale Vorschau</p>
+                        <h2 id="active-project-title" data-active-project-title>
+                            Projekt
+                        </h2>
+                    </div>
+                    <span class="project-toolbar__status" aria-hidden="true"
+                        ><i></i> Aktiv</span
+                    >
+                </header>
+
+                <div class="project-stage" data-project-stage>
+                    <div class="frame-host" data-frame-host></div>
+
+                    <div
+                        class="load-state"
+                        data-load-state
+                        role="status"
+                        aria-live="polite"
+                    >
+                        <span
+                            class="load-state__spinner"
+                            aria-hidden="true"
+                        ></span>
+                        <strong data-load-title>Projekt wird geladen</strong>
+                        <span>Einen Moment bitte.</span>
+                    </div>
+
+                    <div
+                        class="error-state"
+                        data-error-state
+                        role="alert"
+                        hidden
+                    >
+                        <span class="error-state__mark" aria-hidden="true"
+                            >!</span
+                        >
+                        <h3>Projekt konnte nicht geladen werden.</h3>
+                        <p>
+                            Die Hub-Oberfläche bleibt verfügbar. Du kannst es
+                            erneut versuchen.
+                        </p>
+                        <button type="button" data-retry-project>
+                            Erneut laden
+                        </button>
+                    </div>
+                </div>
             </section>
-        </main>
+
+            <p
+                class="sr-only"
+                role="status"
+                aria-live="polite"
+                data-announcer
+            ></p>
+        </div>
+
+        <template data-project-card>
+            <article class="project-card">
+                <button
+                    class="project-card__button"
+                    type="button"
+                    data-project-button
+                >
+                    <span class="project-card__topline">
+                        <span
+                            class="project-card__index"
+                            data-project-index
+                        ></span>
+                        <span
+                            class="project-card__status"
+                            data-project-status
+                        ></span>
+                    </span>
+                    <span class="project-card__visual" aria-hidden="true"
+                        ><i></i><i></i><i></i
+                    ></span>
+                    <span class="project-card__copy">
+                        <strong data-project-title></strong>
+                        <span data-project-description></span>
+                    </span>
+                    <span class="project-card__action">
+                        Öffnen <i aria-hidden="true">↗</i>
+                    </span>
+                </button>
+            </article>
+        </template>
+
     </body>
 </html>

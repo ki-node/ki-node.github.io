@@ -1,8 +1,13 @@
 # ki-node
 
-Technisches Grundgerüst für den nativen ki-node Hub auf dem iPhone. Die
-Web-Oberfläche basiert auf Vite, TypeScript und Vanilla DOM. Capacitor bindet
-sie als lokale iOS-App ein; es wird keine externe Server-URL verwendet.
+Gemeinsamer Projekt-Hub für das Web unter `https://ki-node.github.io/` und die native
+Capacitor-iPhone-App. Die Oberfläche basiert auf Vite, TypeScript und Vanilla DOM. Capacitor bindet
+denselben Build lokal in die iOS-App ein; es wird keine externe Server-URL verwendet.
+
+Der aktuelle Projektkatalog enthält Portfolio, Poster und Blackbox. Beide Laufzeiten verwenden in
+diesem Stand noch ein lokales Mock-Projekt, damit Oberfläche, iframe-Lifecycle und Navigation vor
+der Einbindung der echten Projekte geprüft werden können. Die Architekturentscheidung ist unter
+[`docs/architecture.md`](docs/architecture.md) dokumentiert.
 
 ## Voraussetzungen
 
@@ -13,11 +18,10 @@ sie als lokale iOS-App ein; es wird keine externe Server-URL verwendet.
 ## Lokale Entwicklung
 
 > [!IMPORTANT]
-> Nach einem frischen Clone muss zwingend zuerst `npm ci` ausgeführt werden,
-> bevor das Xcode-Projekt geöffnet oder gebaut wird. Das lokale Swift-Paket in
-> `ios/App/CapApp-SPM/Package.swift` verweist auf
-> `node_modules/@capacitor/haptics`. Ohne installierte npm-Abhängigkeiten kann
-> Xcode dieses Paket nicht auflösen.
+> Nach einem frischen Clone muss zwingend zuerst `npm ci` ausgeführt werden, bevor das
+> Xcode-Projekt geöffnet oder gebaut wird. Das lokale Swift-Paket in
+> `ios/App/CapApp-SPM/Package.swift` verweist auf `node_modules/@capacitor/haptics`. Ohne
+> installierte npm-Abhängigkeiten kann Xcode dieses Paket nicht auflösen.
 
 ```bash
 npm ci
@@ -27,9 +31,14 @@ npx cap sync ios
 npx cap open ios
 ```
 
-`npm run dev` startet den Vite-Entwicklungsserver für die Browser-Ansicht.
-Die Haptik-Schaltfläche bleibt dort ohne native Wirkung und erzeugt keinen
-Fehler.
+`npm run dev` startet dieselbe Hub-Oberfläche im Browser. Native Haptik wird dort zentral als nicht
+verfügbar behandelt und erzeugt keinen Fehler.
+
+## Veröffentlichung
+
+Pull Requests bauen und prüfen den Hub über `.github/workflows/ci.yml`, veröffentlichen ihn aber
+nicht. Nur ein erfolgreicher Push auf `main` startet `.github/workflows/deploy.yml` und überträgt
+das erzeugte `dist`-Artefakt zu GitHub Pages.
 
 ## iOS-Projekt
 
@@ -39,8 +48,6 @@ Die iOS-Plattform nutzt Swift Package Manager. Das Xcode-Projekt liegt unter:
 ios/App/App.xcodeproj
 ```
 
-Capacitor verwaltet die Abhängigkeiten in `ios/App/CapApp-SPM`. Dieser Ordner
-sollte nicht manuell bearbeitet werden.
-
-Apple Watch und Apple TV sind noch nicht Teil dieses Grundgerüsts. Spätere
+Capacitor verwaltet die Abhängigkeiten in `ios/App/CapApp-SPM`. Dieser Ordner sollte nicht manuell
+bearbeitet werden. Apple Watch und Apple TV sind noch nicht Teil dieses Grundgerüsts; spätere
 native Begleit-Targets können im bestehenden Xcode-Projekt ergänzt werden.

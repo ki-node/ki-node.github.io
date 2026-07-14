@@ -97,7 +97,9 @@ test('lays out the iframe behind an inaccessible loading layer before load', asy
     await route.continue();
   });
   await page.goto('/');
-  await portfolioButton(page).click();
+  await portfolioButton(page).evaluate((button: HTMLButtonElement) =>
+    button.click(),
+  );
   await requestStarted;
 
   const iframe = page.locator('iframe[data-project-frame="portfolio"]');

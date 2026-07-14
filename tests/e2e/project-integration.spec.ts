@@ -3,6 +3,44 @@ import { expect, test } from '@playwright/test';
 const portfolioButton = (page: import('@playwright/test').Page) =>
   page.getByRole('button', { name: /Portfolio öffnen/u });
 
+const expectProjectFillsViewport = async (
+  page: import('@playwright/test').Page,
+) => {
+  await expect(page.locator('.site-header')).toBeHidden();
+  await expect(page.locator('.project-toolbar')).toBeVisible();
+  await expect(
+    page.locator('.site-header:visible, .project-toolbar:visible'),
+  ).toHaveCount(1);
+
+  const geometry = await page.evaluate(() => {
+    const project = document
+      .querySelector<HTMLElement>('[data-project-view]')
+      ?.getBoundingClientRect();
+    const toolbar = document
+      .querySelector<HTMLElement>('.project-toolbar')
+      ?.getBoundingClientRect();
+    const frame = document
+      .querySelector<HTMLIFrameElement>('[data-project-frame]')
+      ?.getBoundingClientRect();
+
+    return {
+      frameBottom: frame?.bottom ?? -1,
+      frameTop: frame?.top ?? -1,
+      projectBottom: project?.bottom ?? -1,
+      projectTop: project?.top ?? -1,
+      toolbarBottom: toolbar?.bottom ?? -1,
+      toolbarTop: toolbar?.top ?? -1,
+      viewportHeight: window.innerHeight,
+    };
+  });
+
+  expect(geometry.projectTop).toBeCloseTo(0, 0);
+  expect(geometry.toolbarTop).toBeCloseTo(0, 0);
+  expect(geometry.frameTop).toBeCloseTo(geometry.toolbarBottom, 0);
+  expect(geometry.projectBottom).toBeCloseTo(geometry.viewportHeight, 0);
+  expect(geometry.frameBottom).toBeCloseTo(geometry.viewportHeight, 0);
+};
+
 const simulateNativeCapacitor = async (
   page: import('@playwright/test').Page,
 ) => {
@@ -55,6 +93,7 @@ test('native runtime opens the checked-in Portfolio offline and preserves Hub li
   await expect(page.locator('html')).toHaveClass(/is-hub-ready/u);
   await expect(page.locator('[data-launch-screen]')).toBeHidden();
   const button = portfolioButton(page);
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
   await button.click();
 
   const iframe = page.locator('iframe[data-project-frame="portfolio"]');
@@ -69,6 +108,7 @@ test('native runtime opens the checked-in Portfolio offline and preserves Hub li
     'data-app-context',
     'embedded',
   );
+  await expectProjectFillsViewport(page);
 
   await portfolio.getByRole('link', { name: 'Nachricht schreiben' }).click();
   await expect
@@ -109,13 +149,25 @@ test('native runtime opens the checked-in Portfolio offline and preserves Hub li
   const hubScrollBefore = await page.evaluate(() => window.scrollY);
   const frameScroll = await iframe.evaluate(async (element) => {
     const frameWindow = (element as HTMLIFrameElement).contentWindow;
-    if (!frameWindow) return 0;
+    if (!frameWindow) return undefined;
     frameWindow.document.documentElement.style.scrollBehavior = 'auto';
     frameWindow.scrollTo(0, frameWindow.document.documentElement.scrollHeight);
     await new Promise((resolve) => frameWindow.requestAnimationFrame(resolve));
-    return frameWindow.scrollY;
+    const footer = frameWindow.document
+      .querySelector<HTMLElement>('.site-footer')
+      ?.getBoundingClientRect();
+    return {
+      footerBottom: footer?.bottom ?? -1,
+      footerTop: footer?.top ?? -1,
+      scrollY: frameWindow.scrollY,
+      viewportHeight: frameWindow.innerHeight,
+    };
   });
-  expect(frameScroll).toBeGreaterThan(100);
+  expect(frameScroll?.scrollY).toBeGreaterThan(100);
+  expect(frameScroll?.footerTop).toBeGreaterThanOrEqual(0);
+  expect(frameScroll?.footerBottom).toBeLessThanOrEqual(
+    (frameScroll?.viewportHeight ?? 0) + 1,
+  );
   expect(await page.evaluate(() => window.scrollY)).toBe(hubScrollBefore);
   await expect(page.locator('body')).toHaveCSS('overflow', 'hidden');
 
@@ -135,6 +187,25 @@ test('native runtime opens the checked-in Portfolio offline and preserves Hub li
     )
     .toBe('true');
 
+  await page.evaluate(() =>
+    window.scrollTo(0, document.documentElement.scrollHeight),
+  );
+  const catalogScroll = await page.evaluate(() => window.scrollY);
+  expect(catalogScroll).toBeGreaterThan(100);
+  await page.evaluate(() =>
+    document
+      .querySelector<HTMLButtonElement>(
+        '[data-project-button][data-project-id="portfolio"]',
+      )
+      ?.click(),
+  );
+  await expectProjectFillsViewport(page);
+  await page.getByRole('button', { name: 'Projekte' }).click();
+  await expect
+    .poll(() => page.evaluate(() => window.scrollY))
+    .toBe(catalogScroll);
+
+  await page.evaluate(() => window.scrollTo(0, 0));
   await button.click();
   await expect(
     page.locator('iframe[data-project-frame="portfolio"]'),

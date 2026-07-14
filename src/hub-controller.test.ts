@@ -32,10 +32,14 @@ const fixture = `
 
 describe('HubController', () => {
   let controller: HubController;
+  let scrollTo: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     document.body.innerHTML = fixture;
     window.history.replaceState({}, '', '/');
+    Object.defineProperty(window, 'scrollX', { configurable: true, value: 0 });
+    Object.defineProperty(window, 'scrollY', { configurable: true, value: 0 });
+    scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined);
     controller = new HubController({
       document,
       window,
@@ -49,6 +53,7 @@ describe('HubController', () => {
     controller.destroy();
     document.body.replaceChildren();
     window.history.replaceState({}, '', '/');
+    vi.restoreAllMocks();
   });
 
   it('opens a project with one accessible iframe and the web source', () => {
@@ -125,6 +130,29 @@ describe('HubController', () => {
     controller.openProject('poster', button, 'none');
     controller.closeProject();
 
+    expect(document.activeElement).toBe(button);
+  });
+
+  it('restores the catalog scroll position after closing a project', () => {
+    Object.defineProperty(window, 'scrollX', { configurable: true, value: 12 });
+    Object.defineProperty(window, 'scrollY', {
+      configurable: true,
+      value: 840,
+    });
+    const button = document.querySelector<HTMLElement>(
+      '[data-project-button][data-project-id="portfolio"]',
+    );
+
+    controller.openProject('portfolio', button, 'none');
+    Object.defineProperty(window, 'scrollX', { configurable: true, value: 0 });
+    Object.defineProperty(window, 'scrollY', { configurable: true, value: 0 });
+    controller.closeProject('none');
+
+    expect(scrollTo).toHaveBeenCalledWith({
+      behavior: 'auto',
+      left: 12,
+      top: 840,
+    });
     expect(document.activeElement).toBe(button);
   });
 

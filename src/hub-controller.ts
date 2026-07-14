@@ -24,6 +24,11 @@ interface FrameSession {
   readonly timeout: number;
 }
 
+interface ScrollPosition {
+  readonly left: number;
+  readonly top: number;
+}
+
 type HistoryMode = 'none' | 'push' | 'replace';
 
 const HISTORY_MARKER = 'kiNodeHubProject';
@@ -54,6 +59,7 @@ export class HubController {
   private frameSession: FrameSession | null = null;
   private returnFocus: HTMLElement | null = null;
   private activeHistoryOwned = false;
+  private catalogScrollPosition: ScrollPosition | null = null;
 
   public constructor(options: HubControllerOptions) {
     this.document = options.document;
@@ -105,6 +111,7 @@ export class HubController {
     this.window.removeEventListener('popstate', this.handlePopState);
     this.removeFrame();
     this.resetProjectState(false);
+    this.catalogScrollPosition = null;
     this.initialized = false;
   }
 
@@ -119,6 +126,12 @@ export class HubController {
     if (!project || !isProjectAvailable(project)) return;
 
     const replacesOpenProject = this.activeProject !== null;
+    if (!replacesOpenProject) {
+      this.catalogScrollPosition = {
+        left: this.window.scrollX,
+        top: this.window.scrollY,
+      };
+    }
     this.removeFrame();
     this.activeProject = project;
     this.returnFocus = trigger ?? this.returnFocus;
@@ -159,6 +172,8 @@ export class HubController {
       if (shouldNavigateBack) this.window.history.back();
       else this.clearProjectFromUrl();
     }
+
+    this.restoreCatalogScroll();
 
     if (focusTarget?.isConnected) focusTarget.focus({ preventScroll: true });
     else this.catalogHeading.focus({ preventScroll: true });
@@ -358,6 +373,17 @@ export class HubController {
     const url = new URL(this.window.location.href);
     url.searchParams.delete('project');
     this.window.history.replaceState({}, '', url);
+  }
+
+  private restoreCatalogScroll(): void {
+    if (!this.catalogScrollPosition) return;
+
+    this.window.scrollTo({
+      behavior: 'auto',
+      left: this.catalogScrollPosition.left,
+      top: this.catalogScrollPosition.top,
+    });
+    this.catalogScrollPosition = null;
   }
 
   private requireElement<T extends Element = HTMLElement>(

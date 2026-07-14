@@ -22,7 +22,7 @@ das lokale Mock-Projekt.
 
 `projects.lock.json` beschreibt eingebettete Projekte mit Repository, vollständigem Commit-SHA,
 erlaubtem Build-Befehl, Build-Ausgabe und lokalem Zielpfad. Der Portfolio-Build stammt exakt aus
-`ki-node/portfolio@98adfaf4c3278557a6aae12ca7d119d7164df1d5`.
+`ki-node/portfolio@f34ca2d99949d47d090e85da6d6629233824ac3e`.
 
 `npm run sync:projects` checkt diesen Commit in einem Betriebssystem-Temp-Verzeichnis aus, führt
 im isolierten Checkout `npm ci` und `npm run build:embedded` aus und ersetzt das Hub-Artefakt erst

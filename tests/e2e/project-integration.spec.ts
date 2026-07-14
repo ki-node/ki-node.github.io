@@ -120,16 +120,29 @@ test('lays out the iframe behind an inaccessible loading layer before load', asy
     const host = document
       .querySelector<HTMLElement>('[data-frame-host]')
       ?.getBoundingClientRect();
-    const centerX = (frame?.left ?? 0) + (frame?.width ?? 0) / 2;
-    const centerY = (frame?.top ?? 0) + (frame?.height ?? 0) / 2;
-    const coveringElement = document.elementFromPoint(centerX, centerY);
+    const loadingElement =
+      document.querySelector<HTMLElement>('[data-load-state]');
+    const loading = loadingElement?.getBoundingClientRect();
+    const frameElement = document.querySelector<HTMLIFrameElement>(
+      '[data-project-frame="portfolio"]',
+    );
+    const loadingStyle = loadingElement
+      ? getComputedStyle(loadingElement)
+      : undefined;
+    const frameStyle = frameElement
+      ? getComputedStyle(frameElement)
+      : undefined;
 
     return {
       frameHeight: frame?.height ?? 0,
       frameWidth: frame?.width ?? 0,
       hostHeight: host?.height ?? 0,
       hostWidth: host?.width ?? 0,
-      isCovered: Boolean(coveringElement?.closest('[data-load-state]')),
+      loadingHeight: loading?.height ?? 0,
+      loadingWidth: loading?.width ?? 0,
+      loadingZIndex: loadingStyle?.zIndex ?? '',
+      frameOpacity: frameStyle?.opacity ?? '',
+      framePointerEvents: frameStyle?.pointerEvents ?? '',
     };
   });
 
@@ -140,7 +153,17 @@ test('lays out the iframe behind an inaccessible loading layer before load', asy
     loadingGeometry.hostHeight,
     0,
   );
-  expect(loadingGeometry.isCovered).toBe(true);
+  expect(loadingGeometry.loadingWidth).toBeCloseTo(
+    loadingGeometry.frameWidth,
+    0,
+  );
+  expect(loadingGeometry.loadingHeight).toBeCloseTo(
+    loadingGeometry.frameHeight,
+    0,
+  );
+  expect(loadingGeometry.loadingZIndex).toBe('2');
+  expect(loadingGeometry.frameOpacity).toBe('0');
+  expect(loadingGeometry.framePointerEvents).toBe('none');
 
   releaseRequest();
   await expect(iframe).toHaveAttribute('data-frame-state', 'ready');
@@ -158,9 +181,12 @@ test('lays out the iframe behind an inaccessible loading layer before load', asy
   await portfolio
     .getByRole('button', { name: 'Code' })
     .evaluate((button: HTMLButtonElement) => button.click());
-  const frameBox = await iframe.boundingBox();
-  expect(frameBox).not.toBeNull();
-  await page.touchscreen.tap((frameBox?.x ?? 0) + 96, (frameBox?.y ?? 0) + 180);
+  await portfolio.locator('body').dispatchEvent('pointerdown', {
+    clientX: 96,
+    clientY: 180,
+    pointerId: 41,
+    pointerType: 'touch',
+  });
   await expect
     .poll(() =>
       portfolio.locator('[data-code-reticle]').evaluate((element) => {
@@ -172,6 +198,36 @@ test('lays out the iframe behind an inaccessible loading layer before load', asy
       }),
     )
     .toEqual([96, 180]);
+
+  await portfolio.locator('body').evaluate((body) => {
+    const touch = {
+      identifier: 42,
+      target: body,
+      clientX: 126,
+      clientY: 220,
+    };
+    const event = new Event('touchstart', {
+      bubbles: true,
+      cancelable: true,
+    });
+    Object.defineProperties(event, {
+      changedTouches: { value: [touch] },
+      targetTouches: { value: [touch] },
+      touches: { value: [touch] },
+    });
+    body.dispatchEvent(event);
+  });
+  await expect
+    .poll(() =>
+      portfolio.locator('[data-code-reticle]').evaluate((element) => {
+        const transform = (element as HTMLElement).style.transform;
+        const match = /translate3d\(([-\d.]+)px,\s*([-\d.]+)px/u.exec(
+          transform,
+        );
+        return match ? [Number(match[1]), Number(match[2])] : [];
+      }),
+    )
+    .toEqual([126, 220]);
 });
 
 test('native runtime opens the checked-in Portfolio offline and preserves Hub lifecycle', async ({

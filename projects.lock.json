@@ -4,7 +4,7 @@
 		{
 			"id": "portfolio",
 			"repository": "ki-node/portfolio",
-			"commit": "b17ddbf113071a8f9bf278028e927ee0a9990ed1",
+			"commit": "bf0693af193fbdbe10069a590cf0dfa222d1e23e",
 			"buildCommand": "npm run build:embedded",
 			"buildOutput": "dist-embedded",
 			"targetPath": "public/projects/portfolio"

@@ -44,7 +44,7 @@ Stand festgeschrieben:
 
 ```text
 Repository:    ki-node/portfolio
-Commit:        b17ddbf113071a8f9bf278028e927ee0a9990ed1
+Commit:        bf0693af193fbdbe10069a590cf0dfa222d1e23e
 Build-Befehl:  npm run build:embedded
 Ziel:          public/projects/portfolio/
 ```

@@ -12,6 +12,13 @@ sie als lokale iOS-App ein; es wird keine externe Server-URL verwendet.
 
 ## Lokale Entwicklung
 
+> [!IMPORTANT]
+> Nach einem frischen Clone muss zwingend zuerst `npm ci` ausgeführt werden,
+> bevor das Xcode-Projekt geöffnet oder gebaut wird. Das lokale Swift-Paket in
+> `ios/App/CapApp-SPM/Package.swift` verweist auf
+> `node_modules/@capacitor/haptics`. Ohne installierte npm-Abhängigkeiten kann
+> Xcode dieses Paket nicht auflösen.
+
 ```bash
 npm ci
 npm run check

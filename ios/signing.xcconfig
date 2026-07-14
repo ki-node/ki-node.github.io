@@ -1,0 +1,2 @@
+// Personal signing settings are optional so CI and unsigned builds remain portable.
+#include? "signing.local.xcconfig"

@@ -48,6 +48,31 @@ Die iOS-Plattform nutzt Swift Package Manager. Das Xcode-Projekt liegt unter:
 ios/App/App.xcodeproj
 ```
 
+### Lokale Codesignierung
+
+Die persönliche Apple-Team-ID bleibt ausschließlich in einer ignorierten lokalen
+xcconfig-Datei. Nach einem frischen Clone:
+
+```bash
+cp ios/signing.local.xcconfig.example ios/signing.local.xcconfig
+```
+
+Anschließend in `ios/signing.local.xcconfig` den Platzhalter durch die eigene
+Apple-Team-ID ersetzen:
+
+```xcconfig
+DEVELOPMENT_TEAM = YOUR_APPLE_TEAM_ID
+```
+
+Danach `ios/App/App.xcodeproj` in Xcode öffnen und normal für ein Gerät bauen.
+Debug- und Release-Konfigurationen laden die lokale Datei optional, sodass Xcode
+die Signierung verwenden kann, ohne `DEVELOPMENT_TEAM` in
+`project.pbxproj` einzutragen. Fehlt die lokale Datei, funktionieren Web-Build,
+Capacitor-Sync und CI weiterhin ohne persönliche Signierungsdaten.
+
+`git update-index --skip-worktree` wird hierfür bewusst nicht verwendet: Das
+könnte echte spätere Änderungen an der Xcode-Projektdatei lokal verbergen.
+
 Capacitor verwaltet die Abhängigkeiten in `ios/App/CapApp-SPM`. Dieser Ordner sollte nicht manuell
 bearbeitet werden. Apple Watch und Apple TV sind noch nicht Teil dieses Grundgerüsts; spätere
 native Begleit-Targets können im bestehenden Xcode-Projekt ergänzt werden.

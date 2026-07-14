@@ -152,6 +152,26 @@ test('lays out the iframe behind an inaccessible loading layer before load', asy
     'true',
   );
   await expect(page.locator('[data-load-state]')).toBeHidden();
+
+  const portfolio = page.frameLocator('iframe[data-project-frame="portfolio"]');
+  await expect(portfolio.getByRole('heading', { level: 1 })).toBeVisible();
+  await portfolio
+    .getByRole('button', { name: 'Code' })
+    .evaluate((button: HTMLButtonElement) => button.click());
+  const frameBox = await iframe.boundingBox();
+  expect(frameBox).not.toBeNull();
+  await page.touchscreen.tap((frameBox?.x ?? 0) + 96, (frameBox?.y ?? 0) + 180);
+  await expect
+    .poll(() =>
+      portfolio.locator('[data-code-reticle]').evaluate((element) => {
+        const transform = (element as HTMLElement).style.transform;
+        const match = /translate3d\(([-\d.]+)px,\s*([-\d.]+)px/u.exec(
+          transform,
+        );
+        return match ? [Number(match[1]), Number(match[2])] : [];
+      }),
+    )
+    .toEqual([96, 180]);
 });
 
 test('native runtime opens the checked-in Portfolio offline and preserves Hub lifecycle', async ({

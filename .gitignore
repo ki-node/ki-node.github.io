@@ -12,6 +12,7 @@ xcuserdata/
 DerivedData/
 ios/App/build/
 ios/App/output/
+ios/signing.local.xcconfig
 *.hmap
 *.ipa
 *.dSYM.zip

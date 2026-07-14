@@ -1,0 +1,8 @@
+{
+	"appId": "de.kinode.hub",
+	"appName": "ki-node",
+	"webDir": "dist",
+	"packageClassList": [
+		"HapticsPlugin"
+	]
+}

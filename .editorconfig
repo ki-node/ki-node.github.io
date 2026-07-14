@@ -1,0 +1,38 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 4
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{ts,js}]
+indent_size = 2
+
+[*.json]
+indent_style = tab
+
+[*.md]
+max_line_length = 80
+
+[*.{yaml,yml}]
+indent_size = 2
+
+[package.json]
+indent_style = space
+indent_size = 2
+
+[*.{typoscript,tsconfig}]
+indent_size = 4
+
+[*.xlf]
+indent_style = tab
+
+[*.sql]
+indent_style = tab
+indent_size = 2
+
+[{_.htaccess,.htaccess}]
+indent_style = tab

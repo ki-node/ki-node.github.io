@@ -12,6 +12,7 @@ const simulateNativeCapacitor = async (
     Object.defineProperty(window, 'CapacitorCustomPlatform', {
       configurable: true,
       value: { name: 'ios' },
+      writable: true,
     });
     Object.defineProperty(window, 'Capacitor', {
       configurable: true,
@@ -34,6 +35,7 @@ const simulateNativeCapacitor = async (
           return Promise.resolve();
         },
       },
+      writable: true,
     });
   });
 };

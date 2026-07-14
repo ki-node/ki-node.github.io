@@ -60,13 +60,44 @@ describe('HubController', () => {
     );
     expect(controller.getActiveProjectId()).toBe('portfolio');
     expect(frame?.title).toContain('Portfolio');
-    expect(frame?.getAttribute('src')).toContain('source=web');
+    expect(frame?.getAttribute('src')).toBe(
+      'https://ki-node.github.io/portfolio/',
+    );
     expect(frame?.getAttribute('sandbox')).not.toContain(
       'allow-top-navigation',
     );
     expect(
       document.querySelector('[data-project-view]')?.hasAttribute('hidden'),
     ).toBe(false);
+    expect(document.querySelectorAll('iframe')).toHaveLength(1);
+  });
+
+  it('opens, closes and reopens the native Portfolio build', () => {
+    controller.destroy();
+    controller = new HubController({
+      document,
+      window,
+      runtime: createHubRuntime('native'),
+      loadTimeoutMs: 60_000,
+    });
+    controller.init();
+
+    const button = document.querySelector<HTMLElement>(
+      '[data-project-button][data-project-id="portfolio"]',
+    );
+    controller.openProject('portfolio', button, 'none');
+    const firstFrame = document.querySelector<HTMLIFrameElement>('iframe');
+
+    expect(firstFrame?.getAttribute('src')).toBe(
+      './projects/portfolio/index.html',
+    );
+    controller.closeProject('none');
+    expect(firstFrame?.isConnected).toBe(false);
+    expect(document.activeElement).toBe(button);
+
+    controller.openProject('portfolio', button, 'none');
+    const secondFrame = document.querySelector<HTMLIFrameElement>('iframe');
+    expect(secondFrame).not.toBe(firstFrame);
     expect(document.querySelectorAll('iframe')).toHaveLength(1);
   });
 

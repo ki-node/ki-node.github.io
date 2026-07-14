@@ -18,8 +18,8 @@ const mockUrl = (project: ProjectId, source: 'embedded' | 'web') =>
   `./mock-project/index.html?project=${project}&source=${source}`;
 
 /**
- * Central project catalog. Both sources intentionally target the local mock in
- * this first shell PR; later project PRs replace only the matching source URL.
+ * Central project catalog. Native and web sources are resolved only by the
+ * runtime boundary; UI components consume the selected URL without branching.
  */
 export const PROJECT_CATALOG = [
   {
@@ -27,10 +27,10 @@ export const PROJECT_CATALOG = [
     title: 'Portfolio',
     description:
       'Digitale Arbeiten, Systeme und Ideen in einer interaktiven Präsentation.',
-    embeddedUrl: mockUrl('portfolio', 'embedded'),
-    webUrl: mockUrl('portfolio', 'web'),
+    embeddedUrl: './projects/portfolio/index.html',
+    webUrl: 'https://ki-node.github.io/portfolio/',
     capabilities: ['haptics'],
-    status: 'preview',
+    status: 'active',
   },
   {
     id: 'poster',

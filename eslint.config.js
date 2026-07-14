@@ -4,7 +4,12 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    ignores: ['dist/**', 'ios/App/App/public/**', 'tmp/**'],
+    ignores: [
+      'dist/**',
+      'ios/App/App/public/**',
+      'public/projects/**',
+      'tmp/**',
+    ],
   },
   eslint.configs.recommended,
   ...tseslint.configs.strict,

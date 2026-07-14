@@ -4,9 +4,9 @@ Gemeinsamer Projekt-Hub für das Web unter `https://ki-node.github.io/` und die 
 Capacitor-iPhone-App. Die Oberfläche basiert auf Vite, TypeScript und Vanilla DOM. Capacitor bindet
 denselben Build lokal in die iOS-App ein; es wird keine externe Server-URL verwendet.
 
-Der aktuelle Projektkatalog enthält Portfolio, Poster und Blackbox. Beide Laufzeiten verwenden in
-diesem Stand noch ein lokales Mock-Projekt, damit Oberfläche, iframe-Lifecycle und Navigation vor
-der Einbindung der echten Projekte geprüft werden können. Die Architekturentscheidung ist unter
+Der aktuelle Projektkatalog enthält Portfolio, Poster und Blackbox. Portfolio ist in der nativen
+App als versionsfixierter Offline-Build integriert; Poster und Blackbox verwenden weiterhin ihre
+lokalen Mock-Projekte. Die Architekturentscheidung ist unter
 [`docs/architecture.md`](docs/architecture.md) dokumentiert.
 
 ## Voraussetzungen
@@ -25,6 +25,7 @@ der Einbindung der echten Projekte geprüft werden können. Die Architekturentsc
 
 ```bash
 npm ci
+npm run sync:projects
 npm run check
 npm run build
 npx cap sync ios
@@ -33,6 +34,51 @@ npx cap open ios
 
 `npm run dev` startet dieselbe Hub-Oberfläche im Browser. Native Haptik wird dort zentral als nicht
 verfügbar behandelt und erzeugt keinen Fehler.
+
+## Eingebettete Projektversionen
+
+[`projects.lock.json`](projects.lock.json) ist die zentrale, maschinenlesbare
+Versionsfixierung für lokale Projekt-Builds. Portfolio ist derzeit auf folgenden
+Stand festgeschrieben:
+
+```text
+Repository:    ki-node/portfolio
+Commit:        ce4b2da9096f25d3348b7ca4fdc1ff8457fc908d
+Build-Befehl:  npm run build:embedded
+Ziel:          public/projects/portfolio/
+```
+
+`npm run sync:projects` liest ausschließlich diese Lock-Datei, legt außerhalb des
+Repositories einen temporären Checkout des exakten Commits an, führt dort `npm ci`
+und `npm run build:embedded` aus und validiert alle aktiven Asset-Referenzen. Erst
+nach erfolgreicher Prüfung ersetzt das Skript den bisherigen Zielordner vollständig.
+Temporäre Quellen und `node_modules` werden anschließend entfernt und nie in den Hub
+übernommen.
+
+Der erzeugte Inhalt unter `public/projects/portfolio/` ist bewusst eingecheckt. Er
+gehört zum nativen App-Bundle, muss nach der Installation ohne Netzwerk verfügbar
+sein und wird von Vite unverändert nach `dist/projects/portfolio/` kopiert. Eine
+zusätzliche `ki-node-project.json` im Build dokumentiert Repository, Commit und
+Build-Befehl direkt am Artefakt.
+
+Im nativen Capacitor-Kontext löst die zentrale Runtime Portfolio als
+`./projects/portfolio/index.html` auf. Der Web-Hub verwendet dagegen weiterhin
+`https://ki-node.github.io/portfolio/`. Poster und Blackbox bleiben in beiden
+Laufzeiten auf ihren bisherigen Mock-URLs.
+
+### Portfolio aktualisieren
+
+Eine neue Version wird niemals automatisch von `main` übernommen. Für ein bewusstes
+Update:
+
+1. vollständigen Commit-SHA in `projects.lock.json` ändern,
+2. `npm run sync:projects` ausführen,
+3. erzeugte Änderungen unter `public/projects/portfolio/` prüfen,
+4. `npm run check`, `npm run build` und `npx cap sync ios` ausführen und gemeinsam
+   mit der Lock-Datei committen.
+
+CI erzeugt den Build erneut und schlägt fehl, sobald Lock-Datei, Provenienz oder
+eingechecktes Artefakt voneinander abweichen.
 
 ## Veröffentlichung
 

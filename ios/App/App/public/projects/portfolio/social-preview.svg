@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+    <defs>
+        <radialGradient id="background" cx="78%" cy="20%" r="100%">
+            <stop offset="0" stop-color="#30144c"/>
+            <stop offset="0.5" stop-color="#12091e"/>
+            <stop offset="1" stop-color="#090511"/>
+        </radialGradient>
+        <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#f3dfff"/>
+            <stop offset="0.38" stop-color="#d18cff"/>
+            <stop offset="0.72" stop-color="#8d6cff"/>
+            <stop offset="1" stop-color="#ef8dff"/>
+        </linearGradient>
+        <pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse">
+            <path d="M48 0H0V48" fill="none" stroke="#e2c9ff" stroke-opacity="0.05"/>
+        </pattern>
+        <filter id="glow" x="-100%" y="-100%" width="300%" height="300%">
+            <feGaussianBlur stdDeviation="28"/>
+        </filter>
+    </defs>
+
+    <rect width="1200" height="630" fill="url(#background)"/>
+    <rect width="1200" height="630" fill="url(#grid)"/>
+    <circle cx="962" cy="318" r="194" fill="none" stroke="#d7b8ff" stroke-opacity="0.24" stroke-width="2" stroke-dasharray="11 15"/>
+    <circle cx="962" cy="318" r="141" fill="none" stroke="#f07bff" stroke-opacity="0.32" stroke-width="2"/>
+    <circle cx="962" cy="318" r="108" fill="#9b5cff" fill-opacity="0.34" filter="url(#glow)"/>
+    <path d="M902 202c66-36 153-4 177 69 24 76-21 162-98 176-72 13-138-41-141-113-3-55 18-105 62-132Z" fill="url(#accent)"/>
+    <circle cx="911" cy="250" r="18" fill="#fff" fill-opacity="0.74"/>
+    <circle cx="1128" cy="215" r="12" fill="#f07bff"/>
+
+    <g font-family="Arial, Helvetica, sans-serif">
+        <text x="86" y="96" fill="#d7b8ff" font-size="22" font-weight="700" letter-spacing="5">PORTFOLIO / WEBENTWICKLUNG</text>
+        <text x="82" y="248" fill="#f7f3ff" font-size="82" font-weight="700" letter-spacing="-4">FUNCTION.</text>
+        <text x="82" y="337" fill="#f7f3ff" font-size="82" font-weight="700" letter-spacing="-4">FORM.</text>
+        <text x="82" y="426" fill="url(#accent)" font-size="82" font-weight="700" letter-spacing="-4">FEEL.</text>
+        <text x="86" y="520" fill="#c7bfd2" font-size="25" letter-spacing="1">Mobile-first · TYPO3 · Frontend · Accessibility</text>
+    </g>
+
+    <path d="M86 565H1114" stroke="#d7b8ff" stroke-opacity="0.17"/>
+    <circle cx="1102" cy="74" r="6" fill="#bfff92"/>
+</svg>

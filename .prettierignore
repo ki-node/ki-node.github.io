@@ -2,4 +2,7 @@ dist/
 ios/
 node_modules/
 package-lock.json
+playwright-report/
+public/projects/
+test-results/
 tmp/

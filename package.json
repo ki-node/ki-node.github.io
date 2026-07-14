@@ -9,12 +9,17 @@
   "scripts": {
     "dev": "vite",
     "build": "npm run typecheck && vite build",
+    "sync:projects": "node scripts/sync-projects.mjs",
+    "check:projects": "node scripts/check-projects.mjs",
+    "check:project-copy": "node scripts/check-project-copy.mjs dist/projects/portfolio",
+    "check:ios-project-copy": "node scripts/check-project-copy.mjs ios/App/App/public/projects/portfolio",
     "check:ios-signing": "node scripts/check-ios-signing.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "format:check": "prettier --check . --ignore-unknown",
     "test": "vitest run",
-    "check": "npm run check:ios-signing && npm run typecheck && npm run lint && npm run format:check && npm run test"
+    "test:e2e": "playwright test",
+    "check": "npm run check:projects && npm run check:ios-signing && npm run typecheck && npm run lint && npm run format:check && npm run test"
   },
   "dependencies": {
     "@capacitor/core": "8.4.1",
@@ -24,6 +29,7 @@
   "devDependencies": {
     "@capacitor/cli": "8.4.1",
     "@eslint/js": "10.0.1",
+    "@playwright/test": "1.61.1",
     "eslint": "10.7.0",
     "globals": "17.7.0",
     "jsdom": "29.1.1",

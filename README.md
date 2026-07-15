@@ -58,7 +58,7 @@ Versionsfixierung für lokale Projekt-Builds:
 ```text
 Portfolio: ki-node/portfolio@07c6b7eb09bd3d0577d49df657fed2d58097f018
            npm run build:embedded → public/projects/portfolio/
-Poster:    ki-node/poster@aaec45a01dc3a6fbadede11bedd4b66093e085f1
+Poster:    ki-node/poster@db64fa45ff573119c49bf2641de07c09c23ab734
            npm run build:embedded → public/projects/poster/
 ```
 
@@ -96,7 +96,7 @@ eingechecktes Artefakt voneinander abweichen.
 
 Der Portfolio-SHA ist ein endgültiger Squash-Merge-Commit. Poster ist für den gemeinsamen
 Gerätetest bewusst auf den vollständigen Feature-Commit
-`aaec45a01dc3a6fbadede11bedd4b66093e085f1` festgeschrieben. Nach erfolgreichem Test und
+`db64fa45ff573119c49bf2641de07c09c23ab734` festgeschrieben. Nach erfolgreichem Test und
 Squash-Merge des Poster-PRs wird Orbit abschließend auf dessen Merge-Commit umgepinnt. Weitere
 Updates erfolgen ausschließlich über eine bewusste Lock-Änderung und erneute Synchronisation.
 

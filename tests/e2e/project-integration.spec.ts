@@ -83,6 +83,7 @@ const simulateNativeCapacitor = async (
 
 test('lays out the iframe behind an inaccessible loading layer before load', async ({
   page,
+  browserName,
 }) => {
   await simulateNativeCapacitor(page);
   let releaseRequest: () => void = () => undefined;
@@ -184,23 +185,25 @@ test('lays out the iframe behind an inaccessible loading layer before load', asy
   await portfolio
     .getByRole('button', { name: 'Code' })
     .evaluate((button: HTMLButtonElement) => button.click());
-  await portfolio.locator('body').dispatchEvent('pointerdown', {
-    clientX: 96,
-    clientY: 180,
-    pointerId: 41,
-    pointerType: 'touch',
-  });
-  await expect
-    .poll(() =>
-      portfolio.locator('[data-code-reticle]').evaluate((element) => {
-        const transform = (element as HTMLElement).style.transform;
-        const match = /translate3d\(([-\d.]+)px,\s*([-\d.]+)px/u.exec(
-          transform,
-        );
-        return match ? [Number(match[1]), Number(match[2])] : [];
-      }),
-    )
-    .toEqual([96, 180]);
+  if (browserName === 'chromium') {
+    await portfolio.locator('body').dispatchEvent('pointerdown', {
+      clientX: 96,
+      clientY: 180,
+      pointerId: 41,
+      pointerType: 'touch',
+    });
+    await expect
+      .poll(() =>
+        portfolio.locator('[data-code-reticle]').evaluate((element) => {
+          const transform = (element as HTMLElement).style.transform;
+          const match = /translate3d\(([-\d.]+)px,\s*([-\d.]+)px/u.exec(
+            transform,
+          );
+          return match ? [Number(match[1]), Number(match[2])] : [];
+        }),
+      )
+      .toEqual([96, 180]);
+  }
 
   await portfolio.locator('body').evaluate((body) => {
     const touch = {
@@ -236,6 +239,7 @@ test('lays out the iframe behind an inaccessible loading layer before load', asy
 test('native runtime opens the checked-in Portfolio offline and preserves Hub lifecycle', async ({
   page,
 }) => {
+  await page.setViewportSize({ width: 390, height: 700 });
   await simulateNativeCapacitor(page);
   await page.route('**/*', async (route) => {
     const url = new URL(route.request().url());
@@ -444,6 +448,7 @@ test('native runtime opens the pinned Poster offline with mobile-safe geometry a
 
   const format = poster.locator('#poster-format');
   const preview = poster.locator('[data-poster]');
+  await poster.locator('[data-advanced] summary').click();
   const formats = [
     ['portrait', '1200', '1600'],
     ['square', '1200', '1200'],

@@ -7,9 +7,9 @@ denselben Build lokal in die iOS-App ein; es wird keine externe Server-URL verwe
 `ki-node` bleibt der technische Organisations-, Repository- und Hosting-Kontext. Der sichtbare
 Produktname im Web und auf iOS ist ausschließlich Orbit.
 
-Der aktuelle Projektkatalog enthält Portfolio, Poster und Blackbox. Portfolio ist in der nativen
-App als versionsfixierter Offline-Build integriert; Poster und Blackbox verwenden weiterhin ihre
-lokalen Mock-Projekte. Die Architekturentscheidung ist unter
+Der aktuelle Projektkatalog enthält Portfolio, Poster und Blackbox. Portfolio und Poster sind in
+der nativen App als versionsfixierte Offline-Builds integriert; Blackbox verwendet weiterhin sein
+lokales Mock-Projekt. Die Architekturentscheidung ist unter
 [`docs/architecture.md`](docs/architecture.md) dokumentiert.
 
 ## Voraussetzungen
@@ -53,52 +53,49 @@ auf dem durchgängigen tiefblauen Hintergrund.
 ## Eingebettete Projektversionen
 
 [`projects.lock.json`](projects.lock.json) ist die zentrale, maschinenlesbare
-Versionsfixierung für lokale Projekt-Builds. Portfolio ist derzeit auf folgenden
-Stand festgeschrieben:
+Versionsfixierung für lokale Projekt-Builds:
 
 ```text
-Repository:    ki-node/portfolio
-Commit:        07c6b7eb09bd3d0577d49df657fed2d58097f018
-Build-Befehl:  npm run build:embedded
-Ziel:          public/projects/portfolio/
+Portfolio: ki-node/portfolio@07c6b7eb09bd3d0577d49df657fed2d58097f018
+           npm run build:embedded → public/projects/portfolio/
+Poster:    ki-node/poster@4199b18f0c169f776dceb3d0d3d1c2fda266560c
+           npm run build:embedded → public/projects/poster/
 ```
 
-`npm run sync:projects` liest ausschließlich diese Lock-Datei, legt außerhalb des
+`npm run sync:projects` liest ausschließlich diese Lock-Datei, legt je Projekt außerhalb des
 Repositories einen temporären Checkout des exakten Commits an, führt dort `npm ci`
 und `npm run build:embedded` aus und validiert alle aktiven Asset-Referenzen. Erst
-nach erfolgreicher Prüfung ersetzt das Skript den bisherigen Zielordner vollständig.
+nach erfolgreicher Prüfung ersetzt das Skript den jeweiligen Zielordner vollständig.
 Temporäre Quellen und `node_modules` werden anschließend entfernt und nie in den Hub
 übernommen.
 
-Der erzeugte Inhalt unter `public/projects/portfolio/` ist bewusst eingecheckt. Er
-gehört zum nativen App-Bundle, muss nach der Installation ohne Netzwerk verfügbar
-sein und wird von Vite unverändert nach `dist/projects/portfolio/` kopiert. Eine
-zusätzliche `ki-node-project.json` im Build dokumentiert Repository, Commit und
-Build-Befehl direkt am Artefakt.
+Portfolio und Poster können auch unabhängig synchronisiert werden, etwa mit
+`npm run sync:projects -- poster`. Der erzeugte Inhalt unter `public/projects/<id>/` ist bewusst
+eingecheckt. Er gehört zum nativen App-Bundle, muss nach der Installation ohne Netzwerk verfügbar
+sein und wird von Vite unverändert nach `dist/projects/<id>/` kopiert. Eine zusätzliche
+`ki-node-project.json` dokumentiert Repository, Commit und Build-Befehl direkt am Artefakt.
 
-Im nativen Capacitor-Kontext löst die zentrale Runtime Portfolio als
-`./projects/portfolio/index.html` auf. Der Web-Hub verwendet dagegen weiterhin
-`https://ki-node.github.io/portfolio/`. Poster und Blackbox bleiben in beiden
-Laufzeiten auf ihren bisherigen Mock-URLs.
+Im nativen Capacitor-Kontext löst die zentrale Runtime Portfolio und Poster als
+`./projects/<id>/index.html` auf. Der Web-Hub verwendet dagegen weiterhin
+`https://ki-node.github.io/portfolio/` beziehungsweise `https://ki-node.github.io/poster/`.
+Blackbox bleibt in beiden Laufzeiten beim bisherigen Mock-Projekt.
 
-### Portfolio aktualisieren
+### Eingebettetes Projekt aktualisieren
 
 Eine neue Version wird niemals automatisch von `main` übernommen. Für ein bewusstes
 Update:
 
 1. vollständigen Commit-SHA in `projects.lock.json` ändern,
 2. `npm run sync:projects` ausführen,
-3. erzeugte Änderungen unter `public/projects/portfolio/` prüfen,
+3. erzeugte Änderungen unter `public/projects/<id>/` prüfen,
 4. `npm run check`, `npm run build` und `npx cap sync ios` ausführen und gemeinsam
    mit der Lock-Datei committen.
 
 CI erzeugt den Build erneut und schlägt fehl, sobald Lock-Datei, Provenienz oder
 eingechecktes Artefakt voneinander abweichen.
 
-Der aktuell festgeschriebene SHA ist der endgültige Squash-Merge-Commit des
-Portfolio-Folge-PRs. Der abschließende Repin wurde vollständig synchronisiert und
-geprüft; weitere Portfolio-Updates erfolgen wieder ausschließlich über eine
-bewusste Lock-Änderung und erneute Synchronisation.
+Beide aktuell festgeschriebenen SHAs sind endgültige Squash-Merge-Commits. Weitere Updates erfolgen
+ausschließlich über eine bewusste Lock-Änderung und erneute Synchronisation.
 
 ## Native Projekt-Bridge und Kaltstart
 
@@ -108,6 +105,13 @@ diese Nachrichten nur vom aktuell aktiven Portfolio-iframe und öffnet die URL i
 nativen Kontext mit dem offiziellen Capacitor-App-Launcher. Projektkennung,
 Protokollversion, Nachrichtentyp und URL-Scheme werden vor jedem nativen Aufruf
 validiert; die iframe-Sandbox erhält keine Top-Navigationsrechte.
+
+Poster verwendet in diesem Stand bewusst nur seine Browser-Fallbacks. Ausschließlich der
+Poster-iframe erhält `allow-downloads` für den per Blob-URL ausgelösten PNG-Export und die eng
+begrenzte Permissions Policy `clipboard-write` für Seed und Konfigurationslink. Portfolio und
+Blackbox erhalten diese Rechte nicht; die Sandbox wird nicht global aufgeweicht. Abgelehnte oder
+nicht verfügbare Clipboard-Zugriffe werden im Poster kontrolliert angezeigt. Eine native
+Poster-Bridge wird erst bei Bedarf in separaten, versionierten Folge-PRs entworfen.
 
 Ein statischer dunkelvioletter Orbit-Launchscreen überbrückt den beobachteten
 kalten Start des WKWebView-Prozesses. Er wird nach Hub-Initialisierung und zwei

@@ -263,10 +263,19 @@ export class HubController {
     frame.title = `${project.title} – Projektvorschau in Orbit`;
     frame.src = this.runtime.resolveProjectSource(project);
     frame.referrerPolicy = 'no-referrer';
-    frame.setAttribute(
-      'sandbox',
-      'allow-forms allow-modals allow-same-origin allow-scripts',
-    );
+    const sandboxTokens = [
+      'allow-forms',
+      'allow-modals',
+      'allow-same-origin',
+      'allow-scripts',
+    ];
+    if (project.framePermissions.includes('downloads')) {
+      sandboxTokens.push('allow-downloads');
+    }
+    frame.setAttribute('sandbox', sandboxTokens.join(' '));
+    if (project.framePermissions.includes('clipboard-write')) {
+      frame.setAttribute('allow', 'clipboard-write');
+    }
     frame.setAttribute('data-project-frame', project.id);
     frame.dataset.frameState = 'loading';
     frame.setAttribute('aria-hidden', 'true');

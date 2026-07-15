@@ -213,10 +213,10 @@ export async function validateEmbeddedProject(outputDirectory) {
 
         if (
             extension !== '.html' &&
-            /(^|["'`(=:\s])\/portfolio\//u.test(content)
+            /(^|["'`(=:\s])\/(?:portfolio|poster)\//u.test(content)
         ) {
             throw new Error(
-                `Absolute /portfolio/ dependency in ${path.relative(root, filename)}.`,
+                `Absolute public project dependency in ${path.relative(root, filename)}.`,
             );
         }
 

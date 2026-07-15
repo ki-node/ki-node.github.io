@@ -10,8 +10,13 @@ import {
 } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { isDeepStrictEqual } from 'node:util';
 
-import { createProjectProvenance, loadProjectLock } from './project-lock.mjs';
+import {
+    createProjectProvenance,
+    expectedSourceProvenance,
+    loadProjectLock,
+} from './project-lock.mjs';
 import { validateEmbeddedProject } from './validate-embedded-project.mjs';
 
 const repositoryRoot = path.resolve(import.meta.dirname, '..');
@@ -147,6 +152,31 @@ const syncProject = async (project, temporaryRoot) => {
 
     const outputDirectory = path.resolve(sourceDirectory, project.buildOutput);
     await validateEmbeddedProject(outputDirectory);
+
+    const expectedBuildProvenance = expectedSourceProvenance(project);
+    if (expectedBuildProvenance) {
+        let sourceProvenance;
+        try {
+            sourceProvenance = JSON.parse(
+                await readFile(
+                    path.join(outputDirectory, 'ki-node-project.json'),
+                    'utf8',
+                ),
+            );
+        } catch (error) {
+            throw new Error(
+                `Could not read generated provenance for ${project.id}.`,
+                { cause: error },
+            );
+        }
+
+        if (!isDeepStrictEqual(sourceProvenance, expectedBuildProvenance)) {
+            throw new Error(
+                `Generated provenance for ${project.id} does not match its locked source, commit, build command and format.`,
+            );
+        }
+    }
+
     await writeFile(
         path.join(outputDirectory, 'ki-node-project.json'),
         `${JSON.stringify(createProjectProvenance(project), null, 2)}\n`,
@@ -170,13 +200,32 @@ const syncProject = async (project, temporaryRoot) => {
 let temporaryRoot;
 try {
     const lock = await loadProjectLock(repositoryRoot);
+    const requestedIds = process.argv.slice(2);
+    const duplicateIds = requestedIds.filter(
+        (id, index) => requestedIds.indexOf(id) !== index,
+    );
+    if (duplicateIds.length > 0) {
+        throw new Error(`Duplicate project id: ${duplicateIds[0]}`);
+    }
+    const projects =
+        requestedIds.length === 0
+            ? lock.projects
+            : requestedIds.map((id) => {
+                  const project = lock.projects.find(
+                      (candidate) => candidate.id === id,
+                  );
+                  if (!project) throw new Error(`Unknown project id: ${id}`);
+                  return project;
+              });
     temporaryRoot = await mkdtemp(
         path.join(os.tmpdir(), 'ki-node-project-sync-'),
     );
-    for (const project of lock.projects) {
+    for (const project of projects) {
         await syncProject(project, temporaryRoot);
     }
-    console.log('\nAll locked projects were synchronized successfully.');
+    console.log(
+        `\n${String(projects.length)} locked project(s) were synchronized successfully.`,
+    );
 } catch (error) {
     console.error('\nProject synchronization failed.');
     console.error(error instanceof Error ? error.message : error);

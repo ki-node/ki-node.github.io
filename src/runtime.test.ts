@@ -33,6 +33,17 @@ describe('Hub runtime', () => {
     expect(runtime.supports('haptics')).toBe(true);
   });
 
+  it('resolves Poster publicly on the web and locally in the native app', () => {
+    const poster = PROJECT_CATALOG[1];
+
+    expect(createHubRuntime('web').resolveProjectSource(poster)).toBe(
+      'https://ki-node.github.io/poster/',
+    );
+    expect(createHubRuntime('native').resolveProjectSource(poster)).toBe(
+      './projects/poster/index.html',
+    );
+  });
+
   it('hands allowed native links to the official system app launcher', async () => {
     const openUrl = vi
       .spyOn(AppLauncher, 'openUrl')

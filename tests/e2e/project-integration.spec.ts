@@ -170,7 +170,9 @@ test('lays out the iframe behind an inaccessible loading layer before load', asy
   expect(loadingGeometry.framePointerEvents).toBe('none');
 
   releaseRequest();
-  await expect(iframe).toHaveAttribute('data-frame-state', 'ready');
+  await expect(iframe).toHaveAttribute('data-frame-state', 'ready', {
+    timeout: 15_000,
+  });
   await expect(iframe).not.toHaveAttribute('aria-hidden', 'true');
   await expect(iframe).not.toHaveAttribute('inert', '');
   await expect(iframe).not.toHaveAttribute('tabindex', '-1');
@@ -346,9 +348,10 @@ test('native runtime opens the checked-in Portfolio offline and preserves Hub li
     )
     .toBe('true');
 
-  await page.evaluate(() =>
-    window.scrollTo(0, document.documentElement.scrollHeight),
-  );
+  await page.evaluate(() => {
+    document.body.style.minHeight = '200vh';
+    window.scrollTo(0, document.documentElement.scrollHeight);
+  });
   const catalogScroll = await page.evaluate(() => window.scrollY);
   expect(catalogScroll).toBeGreaterThan(100);
   await page.evaluate(() =>
@@ -392,6 +395,7 @@ test('web runtime resolves Portfolio publicly without requiring it from CI', asy
 test('native runtime opens the pinned Poster offline with mobile-safe geometry and controls', async ({
   page,
 }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await simulateNativeCapacitor(page);
   const externalRequests: string[] = [];

@@ -27,7 +27,7 @@ verweist unverändert auf das lokale Mock-Projekt.
 erlaubtem Build-Befehl, Build-Ausgabe und lokalem Zielpfad. Die Builds stammen exakt aus:
 
 - `ki-node/portfolio@07c6b7eb09bd3d0577d49df657fed2d58097f018`
-- `ki-node/poster@4199b18f0c169f776dceb3d0d3d1c2fda266560c`
+- `ki-node/poster@aaec45a01dc3a6fbadede11bedd4b66093e085f1`
 
 `npm run sync:projects` checkt diesen Commit in einem Betriebssystem-Temp-Verzeichnis aus, führt
 im isolierten Checkout `npm ci` und `npm run build:embedded` aus und ersetzt das Hub-Artefakt erst
@@ -58,12 +58,19 @@ offiziellen Capacitor-App-Launcher. Fremde Fenster, Projekte, Versionen, Nachric
 Schemes werden verworfen; beim Entfernen des iframe wird auch der Listener entfernt. Die Sandbox
 erhält keine allgemeine Top-Navigation. Native Haptik für die Hub-Oberfläche bleibt zentral.
 
-Poster sendet keine Host-Nachrichten. Sein iframe erhält projektspezifisch `allow-downloads` und
-die Permissions Policy `clipboard-write`, damit PNG-Download und Clipboard-Browser-Fallbacks so
-weit wie möglich erhalten bleiben. Diese Rechte gelten nicht für Portfolio oder Blackbox. Fehler
-werden innerhalb von Poster kontrolliert behandelt. Ob WKWebView Download und Clipboard vollständig
-unterstützt, wird erst im physischen Integrationstest entschieden; eine mögliche native Bridge
-folgt separat und versioniert.
+Poster besitzt eine getrennte Export-Bridge auf Kanal `orbit-project-bridge`, Version 1. Ein Export
+enthält Projektkennung, Request-ID, bereinigbaren Dateinamen, MIME-Typ `image/png`, Bytezahl und
+einen strukturiert geklonten `ArrayBuffer`. Der Hub akzeptiert nur das aktuell aktive Poster-iframe, prüft
+PNG-Signatur und die dokumentierte Obergrenze von 48 MiB und verhindert Request-Replays. Er wandelt
+die Binärdaten erst an der nativen Filesystem-Grenze in Base64 um, schreibt sie unter einem
+hostgenerierten Cache-Pfad, öffnet das offizielle Share-Sheet und löscht die temporäre Datei in
+jedem Abschlussfall.
+
+`allow-downloads` bleibt nur im Web-Hub für den öffentlichen Browser-Download aktiv; im nativen
+iframe wird nie zur Blob-Datei navigiert. Die Permissions Policy `clipboard-write` bleibt
+projektspezifisch bei Poster. Clipboard ist absichtlich nicht Teil der Export-Bridge und verwendet
+weiterhin seinen kontrollierten Browser-Fallback. Portfolio und Blackbox erhalten keine dieser
+zusätzlichen Rechte.
 
 ## Launchscreen und WKWebView-Kaltstart
 

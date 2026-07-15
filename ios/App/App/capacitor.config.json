@@ -12,7 +12,9 @@
 	},
 	"packageClassList": [
 		"AppLauncherPlugin",
+		"FilesystemPlugin",
 		"HapticsPlugin",
+		"SharePlugin",
 		"SplashScreenPlugin"
 	]
 }

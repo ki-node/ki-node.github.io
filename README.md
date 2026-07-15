@@ -58,7 +58,7 @@ Versionsfixierung für lokale Projekt-Builds:
 ```text
 Portfolio: ki-node/portfolio@07c6b7eb09bd3d0577d49df657fed2d58097f018
            npm run build:embedded → public/projects/portfolio/
-Poster:    ki-node/poster@4199b18f0c169f776dceb3d0d3d1c2fda266560c
+Poster:    ki-node/poster@aaec45a01dc3a6fbadede11bedd4b66093e085f1
            npm run build:embedded → public/projects/poster/
 ```
 
@@ -94,8 +94,11 @@ Update:
 CI erzeugt den Build erneut und schlägt fehl, sobald Lock-Datei, Provenienz oder
 eingechecktes Artefakt voneinander abweichen.
 
-Beide aktuell festgeschriebenen SHAs sind endgültige Squash-Merge-Commits. Weitere Updates erfolgen
-ausschließlich über eine bewusste Lock-Änderung und erneute Synchronisation.
+Der Portfolio-SHA ist ein endgültiger Squash-Merge-Commit. Poster ist für den gemeinsamen
+Gerätetest bewusst auf den vollständigen Feature-Commit
+`aaec45a01dc3a6fbadede11bedd4b66093e085f1` festgeschrieben. Nach erfolgreichem Test und
+Squash-Merge des Poster-PRs wird Orbit abschließend auf dessen Merge-Commit umgepinnt. Weitere
+Updates erfolgen ausschließlich über eine bewusste Lock-Änderung und erneute Synchronisation.
 
 ## Native Projekt-Bridge und Kaltstart
 
@@ -106,12 +109,17 @@ nativen Kontext mit dem offiziellen Capacitor-App-Launcher. Projektkennung,
 Protokollversion, Nachrichtentyp und URL-Scheme werden vor jedem nativen Aufruf
 validiert; die iframe-Sandbox erhält keine Top-Navigationsrechte.
 
-Poster verwendet in diesem Stand bewusst nur seine Browser-Fallbacks. Ausschließlich der
-Poster-iframe erhält `allow-downloads` für den per Blob-URL ausgelösten PNG-Export und die eng
-begrenzte Permissions Policy `clipboard-write` für Seed und Konfigurationslink. Portfolio und
-Blackbox erhalten diese Rechte nicht; die Sandbox wird nicht global aufgeweicht. Abgelehnte oder
-nicht verfügbare Clipboard-Zugriffe werden im Poster kontrolliert angezeigt. Eine native
-Poster-Bridge wird erst bei Bedarf in separaten, versionierten Folge-PRs entworfen.
+Poster übergibt im nativen Embedded-Kontext ausschließlich validierte PNG-Daten als strukturiert geklonten
+`ArrayBuffer` über die versionierte Bridge. Orbit akzeptiert nur das aktive Poster-iframe, Version
+1, MIME-Typ `image/png`, eine korrekte PNG-Signatur und höchstens 48 MiB. Der Hub bereinigt den
+Dateinamen, schreibt eine hostgenerierte temporäre Cache-Datei, öffnet genau einmal das iOS-
+Share-Sheet und entfernt die Datei anschließend. Abbruch ist ein kontrolliertes Ergebnis.
+
+Im Web-Hub bleibt `allow-downloads` projektspezifisch für Posters normalen Browser-Download aktiv.
+Der native Poster-iframe benötigt dieses Recht nicht mehr und kann deshalb nicht zur Blob-Grafik
+navigieren. `clipboard-write` bleibt ausschließlich bei Poster für Seed und Konfigurationslink;
+Clipboard wurde nicht in die Datei-Bridge einbezogen. Portfolio und Blackbox erhalten diese Rechte
+nicht, und die Sandbox wird nicht global aufgeweicht.
 
 Ein statischer dunkelvioletter Orbit-Launchscreen überbrückt den beobachteten
 kalten Start des WKWebView-Prozesses. Er wird nach Hub-Initialisierung und zwei

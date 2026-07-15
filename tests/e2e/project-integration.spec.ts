@@ -68,11 +68,23 @@ const simulateNativeCapacitor = async (
             name: 'SplashScreen',
             methods: [{ name: 'hide', rtype: 'promise' }],
           },
+          {
+            name: 'Filesystem',
+            methods: [
+              { name: 'writeFile', rtype: 'promise' },
+              { name: 'deleteFile', rtype: 'promise' },
+            ],
+          },
+          { name: 'Share', methods: [{ name: 'share', rtype: 'promise' }] },
         ],
         nativePromise(pluginId: string, methodName: string, options: unknown) {
           bridgeCalls.push({ pluginId, methodName, options });
           if (pluginId === 'AppLauncher')
             return Promise.resolve({ completed: true });
+          if (pluginId === 'Filesystem' && methodName === 'writeFile')
+            return Promise.resolve({ uri: 'file:///cache/poster.png' });
+          if (pluginId === 'Share')
+            return Promise.resolve({ activityType: 'saveToFiles' });
           return Promise.resolve();
         },
       },
@@ -418,7 +430,7 @@ test('native runtime opens the pinned Poster offline with mobile-safe geometry a
   const iframe = page.locator('iframe[data-project-frame="poster"]');
   await expect(iframe).toHaveAttribute('src', './projects/poster/index.html');
   await expect(iframe).toHaveAttribute('allow', 'clipboard-write');
-  await expect(iframe).toHaveAttribute('sandbox', /allow-downloads/u);
+  await expect(iframe).not.toHaveAttribute('sandbox', /allow-downloads/u);
   await expect(iframe).not.toHaveAttribute('sandbox', /allow-top-navigation/u);
   await expect(iframe).toHaveAttribute('data-frame-state', 'ready');
   await expectProjectFillsViewport(page);
@@ -496,7 +508,7 @@ test('native runtime opens the pinned Poster offline with mobile-safe geometry a
   expect(externalRequests).toEqual([]);
 });
 
-test('Poster keeps PNG and clipboard browser fallbacks controlled inside its iframe', async ({
+test('Poster exports through native Share and keeps Clipboard controlled inside its iframe', async ({
   page,
 }) => {
   await page.addInitScript(() => {
@@ -524,6 +536,13 @@ test('Poster keeps PNG and clipboard browser fallbacks controlled inside its ifr
 
   await poster.getByRole('button', { name: 'Copy', exact: true }).click();
   await expect(poster.locator('[data-status]')).toContainText('kopiert');
+  await poster.getByRole('button', { name: 'Copy', exact: true }).click();
+  await poster
+    .getByRole('button', { name: /Copy shareable configuration link/u })
+    .click();
+  await expect(poster.locator('[data-status]')).toContainText(
+    'Konfigurationslink kopiert',
+  );
   expect(
     await iframe.evaluate(
       (element) =>
@@ -532,7 +551,7 @@ test('Poster keeps PNG and clipboard browser fallbacks controlled inside its ifr
             (Window & { __posterClipboard?: { writes: string[] } }) | null
         )?.__posterClipboard?.writes.length,
     ),
-  ).toBe(1);
+  ).toBe(3);
 
   await iframe.evaluate((element) => {
     const frameWindow = (element as HTMLIFrameElement).contentWindow as
@@ -540,6 +559,10 @@ test('Poster keeps PNG and clipboard browser fallbacks controlled inside its ifr
     if (frameWindow?.__posterClipboard)
       frameWindow.__posterClipboard.fail = true;
   });
+  await poster.getByRole('button', { name: 'Copy', exact: true }).click();
+  await expect(poster.locator('[data-status]')).toContainText(
+    'Seed konnte nicht in die Zwischenablage kopiert werden',
+  );
   await poster
     .getByRole('button', { name: /Copy shareable configuration link/u })
     .click();
@@ -547,21 +570,35 @@ test('Poster keeps PNG and clipboard browser fallbacks controlled inside its ifr
     'konnte nicht in die Zwischenablage kopiert werden',
   );
 
-  const downloadPromise = page.waitForEvent('download');
+  const sourceBefore = await iframe.getAttribute('src');
   await poster.getByRole('button', { name: /Export PNG/u }).click();
-  const download = await downloadPromise;
-  expect(download.suggestedFilename()).toMatch(
-    /^poster-forge-[\w-]+-portrait\.png$/u,
+  await expect(poster.locator('[data-status]')).toContainText(
+    'an Orbit übergeben',
+  );
+  expect(await iframe.getAttribute('src')).toBe(sourceBefore);
+  const nativeExports = await page.evaluate(() =>
+    (
+      window as Window & {
+        __nativeBridgeCalls?: {
+          pluginId: string;
+          methodName: string;
+          options: Record<string, unknown>;
+        }[];
+      }
+    ).__nativeBridgeCalls?.filter(
+      (call) => call.pluginId === 'Filesystem' || call.pluginId === 'Share',
+    ),
   );
   expect(
-    await iframe.evaluate(
-      (element) =>
-        'OrbitBridge' in
-          ((element as HTMLIFrameElement).contentWindow ?? window) ||
-        'orbitBridge' in
-          ((element as HTMLIFrameElement).contentWindow ?? window),
-    ),
-  ).toBe(false);
+    nativeExports?.map((call) => `${call.pluginId}.${call.methodName}`),
+  ).toEqual(['Filesystem.writeFile', 'Share.share', 'Filesystem.deleteFile']);
+  expect(nativeExports?.[0]?.options.path).toMatch(
+    /^orbit-exports\/[\w-]+-poster-forge-[\w-]+-portrait\.png$/u,
+  );
+  expect(nativeExports?.[1]?.options.url).toBe('file:///cache/poster.png');
+  expect(nativeExports?.[2]?.options.path).toBe(
+    nativeExports?.[0]?.options.path,
+  );
   expect(errors).toEqual([]);
 });
 

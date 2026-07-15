@@ -18,9 +18,11 @@ describe('generated iOS plugin configuration', () => {
 
     expect(manifest).toContain('capacitor-swift-pm.git", exact: "8.4.1"');
     expect(manifest).toContain('node_modules/@capacitor/app-launcher');
+    expect(manifest).toContain('node_modules/@capacitor/filesystem');
     expect(manifest).toContain('node_modules/@capacitor/haptics');
+    expect(manifest).toContain('node_modules/@capacitor/share');
     expect(manifest).toContain('node_modules/@capacitor/splash-screen');
-    expect(manifest.match(/node_modules\/@capacitor\//gu)).toHaveLength(3);
+    expect(manifest.match(/node_modules\/@capacitor\//gu)).toHaveLength(5);
   });
 
   it('keeps the remote Swift resolution pinned only to Capacitor 8.4.1', async () => {

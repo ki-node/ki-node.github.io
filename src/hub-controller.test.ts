@@ -3,7 +3,22 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { HubController } from './hub-controller';
 import { createHubRuntime } from './runtime';
 import type { HubRuntime } from './runtime';
-import { PORTFOLIO_BRIDGE } from './bridge-protocol';
+import { PORTFOLIO_BRIDGE, POSTER_BRIDGE } from './bridge-protocol';
+import type { PosterExporter } from './poster-export';
+
+const png = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 1, 2, 3]).buffer;
+
+const posterExportMessage = {
+  channel: POSTER_BRIDGE.channel,
+  version: POSTER_BRIDGE.version,
+  projectId: POSTER_BRIDGE.projectId,
+  type: POSTER_BRIDGE.fileExportType,
+  requestId: 'request-1',
+  filename: 'poster.png',
+  mimeType: POSTER_BRIDGE.mimeType,
+  size: png.byteLength,
+  data: png,
+};
 
 const fixture = `
   <div data-runtime-label></div>
@@ -185,6 +200,10 @@ describe('HubController', () => {
     expect(firstFrame?.getAttribute('src')).toBe(
       './projects/poster/index.html',
     );
+    expect(firstFrame?.getAttribute('sandbox')).not.toContain(
+      'allow-downloads',
+    );
+    expect(firstFrame?.getAttribute('allow')).toBe('clipboard-write');
     controller.closeProject('none');
     expect(firstFrame?.isConnected).toBe(false);
     expect(document.activeElement).toBe(button);
@@ -438,5 +457,138 @@ describe('HubController', () => {
       }),
     );
     expect(openExternalUrl).toHaveBeenCalledOnce();
+  });
+
+  it('accepts one PNG export only from the active native Poster iframe', async () => {
+    controller.destroy();
+    const exportPng = vi
+      .fn<PosterExporter['exportPng']>()
+      .mockResolvedValue('shared');
+    controller = new HubController({
+      document,
+      window,
+      runtime: createHubRuntime('native'),
+      posterExporter: { exportPng },
+      loadTimeoutMs: 60_000,
+    });
+    controller.init();
+    controller.openProject('poster', null, 'none');
+    const frame = document.querySelector<HTMLIFrameElement>('iframe');
+    const postMessage = frame?.contentWindow
+      ? vi.spyOn(frame.contentWindow, 'postMessage')
+      : undefined;
+
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        data: posterExportMessage,
+        source: window,
+      }),
+    );
+    expect(exportPng).not.toHaveBeenCalled();
+
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        data: posterExportMessage,
+        source: frame?.contentWindow ?? null,
+      }),
+    );
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        data: posterExportMessage,
+        source: frame?.contentWindow ?? null,
+      }),
+    );
+    await vi.waitFor(() => expect(exportPng).toHaveBeenCalledOnce());
+    await vi.waitFor(() =>
+      expect(postMessage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: POSTER_BRIDGE.fileExportResultType,
+          requestId: 'request-1',
+          status: 'shared',
+        }),
+        '*',
+      ),
+    );
+  });
+
+  it('rejects invalid Poster envelopes, MIME types and oversized files', async () => {
+    controller.destroy();
+    const exportPng = vi
+      .fn<PosterExporter['exportPng']>()
+      .mockResolvedValue('shared');
+    controller = new HubController({
+      document,
+      window,
+      runtime: createHubRuntime('native'),
+      posterExporter: { exportPng },
+      loadTimeoutMs: 60_000,
+    });
+    controller.init();
+    controller.openProject('poster', null, 'none');
+    const frame = document.querySelector<HTMLIFrameElement>('iframe');
+
+    for (const data of [
+      { ...posterExportMessage, projectId: 'portfolio' },
+      { ...posterExportMessage, version: 2 },
+      { ...posterExportMessage, mimeType: 'text/html' },
+      { ...posterExportMessage, size: POSTER_BRIDGE.maxExportBytes + 1 },
+    ]) {
+      window.dispatchEvent(
+        new MessageEvent('message', {
+          data,
+          source: frame?.contentWindow ?? null,
+        }),
+      );
+    }
+
+    await Promise.resolve();
+    expect(exportPng).not.toHaveBeenCalled();
+  });
+
+  it('announces Poster capability and removes its export listener on close', () => {
+    controller.destroy();
+    const exportPng = vi
+      .fn<PosterExporter['exportPng']>()
+      .mockResolvedValue('shared');
+    controller = new HubController({
+      document,
+      window,
+      runtime: createHubRuntime('native'),
+      posterExporter: { exportPng },
+      loadTimeoutMs: 60_000,
+    });
+    controller.init();
+    controller.openProject('poster', null, 'none');
+    const frame = document.querySelector<HTMLIFrameElement>('iframe');
+    const postMessage = frame?.contentWindow
+      ? vi.spyOn(frame.contentWindow, 'postMessage')
+      : undefined;
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        data: {
+          channel: POSTER_BRIDGE.channel,
+          version: POSTER_BRIDGE.version,
+          projectId: POSTER_BRIDGE.projectId,
+          type: POSTER_BRIDGE.projectReadyType,
+        },
+        source: frame?.contentWindow ?? null,
+      }),
+    );
+    expect(postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: POSTER_BRIDGE.hostReadyType,
+        capabilities: ['file-export'],
+      }),
+      '*',
+    );
+
+    controller.closeProject('none');
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        data: posterExportMessage,
+        source: frame?.contentWindow ?? null,
+      }),
+    );
+    expect(exportPng).not.toHaveBeenCalled();
   });
 });

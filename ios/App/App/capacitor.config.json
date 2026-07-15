@@ -1,12 +1,12 @@
 {
 	"appId": "de.kinode.hub",
-	"appName": "ki-node",
+	"appName": "Orbit",
 	"webDir": "dist",
 	"plugins": {
 		"SplashScreen": {
 			"launchAutoHide": true,
 			"launchShowDuration": 15000,
-			"backgroundColor": "#140c22",
+			"backgroundColor": "#01011b",
 			"showSpinner": false
 		}
 	},

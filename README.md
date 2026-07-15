@@ -1,8 +1,11 @@
-# ki-node
+# Orbit
 
-Gemeinsamer Projekt-Hub für das Web unter `https://ki-node.github.io/` und die native
+Orbit ist der gemeinsame Projekt-Hub für das Web unter `https://ki-node.github.io/` und die native
 Capacitor-iPhone-App. Die Oberfläche basiert auf Vite, TypeScript und Vanilla DOM. Capacitor bindet
 denselben Build lokal in die iOS-App ein; es wird keine externe Server-URL verwendet.
+
+`ki-node` bleibt der technische Organisations-, Repository- und Hosting-Kontext. Der sichtbare
+Produktname im Web und auf iOS ist ausschließlich Orbit.
 
 Der aktuelle Projektkatalog enthält Portfolio, Poster und Blackbox. Portfolio ist in der nativen
 App als versionsfixierter Offline-Build integriert; Poster und Blackbox verwenden weiterhin ihre
@@ -35,6 +38,17 @@ npx cap open ios
 
 `npm run dev` startet dieselbe Hub-Oberfläche im Browser. Native Haptik wird dort zentral als nicht
 verfügbar behandelt und erzeugt keinen Fehler.
+
+## Branding
+
+Der sichtbare Produktname lautet **Orbit**. Bundle-ID, GitHub-Organisation, Repository-Namen,
+Hosting-URLs und interne Bridge-Bezeichner behalten ihren technischen `ki-node`-Kontext.
+
+Das finale iOS-Marketing- und Homescreen-Icon liegt als opake 1024×1024-PNG unter
+`ios/App/App/Assets.xcassets/AppIcon.appiconset/Orbit-AppIcon-1024.png`. Der native Launchscreen
+verwendet die zugehörigen skalierten Assets aus `OrbitLaunchMark.imageset`; die Web-Hülle nutzt
+`public/orbit-app-icon.png`. Die Dateien in `Splash.imageset` verwenden dieselbe Orbit-Bildmarke
+auf dem durchgängigen tiefblauen Hintergrund.
 
 ## Eingebettete Projektversionen
 
@@ -95,7 +109,7 @@ nativen Kontext mit dem offiziellen Capacitor-App-Launcher. Projektkennung,
 Protokollversion, Nachrichtentyp und URL-Scheme werden vor jedem nativen Aufruf
 validiert; die iframe-Sandbox erhält keine Top-Navigationsrechte.
 
-Ein statischer dunkelvioletter ki-node-Launchscreen überbrückt den beobachteten
+Ein statischer dunkelvioletter Orbit-Launchscreen überbrückt den beobachteten
 kalten Start des WKWebView-Prozesses. Er wird nach Hub-Initialisierung und zwei
 Animation Frames über `@capacitor/splash-screen` ausgeblendet. Die native
 Konfiguration besitzt zusätzlich eine automatische Obergrenze von 15 Sekunden;

@@ -260,7 +260,7 @@ export class HubController {
 
   private createFrame(project: HubProject): void {
     const frame = this.document.createElement('iframe');
-    frame.title = `${project.title} – Projektvorschau in ki-node`;
+    frame.title = `${project.title} – Projektvorschau in Orbit`;
     frame.src = this.runtime.resolveProjectSource(project);
     frame.referrerPolicy = 'no-referrer';
     frame.setAttribute(

@@ -11,4 +11,4 @@ const title = names[project] ?? 'Projekt';
 
 document.querySelector('[data-title]').textContent = title;
 document.querySelector('[data-source]').textContent = source;
-document.title = `${title} – ki-node Mock`;
+document.title = `${title} – Orbit Mock`;

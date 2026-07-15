@@ -2,10 +2,13 @@
 
 ## Entscheidung
 
-`ki-node` ist die gemeinsame Produkthülle und der Einstiegspunkt für den Web-Hub unter
+Orbit ist die gemeinsame Produkthülle und der Einstiegspunkt für den Web-Hub unter
 `https://ki-node.github.io/` und die native Capacitor-iPhone-App. Beide Varianten werden aus
 derselben Vite-/TypeScript-Quellbasis gebaut und verwenden dieselbe Oberfläche, denselben
 typisierten Projektkatalog und denselben iframe-Lifecycle.
+
+`ki-node` bezeichnet weiterhin ausschließlich die technische GitHub-Organisation, Repository-
+Struktur und Hosting-Domain. Sichtbare Produkt-, Launch- und Accessibility-Namen verwenden Orbit.
 
 Der Katalog enthält je Projekt getrennte Quellen. Eine zentrale Laufzeitabstraktion erkennt Web
 oder Capacitor und löst ausschließlich dort die passende URL auf:

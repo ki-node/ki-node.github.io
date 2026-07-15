@@ -67,6 +67,7 @@ describe('HubController', () => {
     );
     expect(controller.getActiveProjectId()).toBe('portfolio');
     expect(frame?.title).toContain('Portfolio');
+    expect(frame?.title).toContain('Orbit');
     expect(frame?.getAttribute('src')).toBe(
       'https://ki-node.github.io/portfolio/',
     );

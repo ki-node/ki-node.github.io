@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "id": "portfolio",
+  "repository": "ki-node/portfolio",
+  "commit": "07c6b7eb09bd3d0577d49df657fed2d58097f018",
+  "buildCommand": "npm run build:embedded"
+}

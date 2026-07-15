@@ -1,4 +1,6 @@
 import { Capacitor } from '@capacitor/core';
+import { AppLauncher } from '@capacitor/app-launcher';
+import { SplashScreen } from '@capacitor/splash-screen';
 
 import { triggerMediumHaptic } from './haptics';
 import type { HubProject, ProjectCapability } from './projects';
@@ -11,6 +13,8 @@ export interface HubRuntime {
   resolveProjectSource(project: HubProject): string;
   supports(capability: ProjectCapability): boolean;
   triggerOpenFeedback(): Promise<boolean>;
+  openExternalUrl(url: string): Promise<boolean>;
+  hideLaunchScreen(): Promise<boolean>;
 }
 
 export const detectRuntimeKind = (): RuntimeKind =>
@@ -28,5 +32,28 @@ export function createHubRuntime(
     supports: (capability) => capability === 'haptics' && kind === 'native',
     triggerOpenFeedback: async () =>
       kind === 'native' ? triggerMediumHaptic() : Promise.resolve(false),
+    openExternalUrl: async (url) => {
+      if (kind !== 'native') return false;
+
+      try {
+        const parsed = new URL(url);
+        if (parsed.protocol !== 'mailto:' && parsed.protocol !== 'https:')
+          return false;
+        const result = await AppLauncher.openUrl({ url: parsed.href });
+        return result.completed;
+      } catch {
+        return false;
+      }
+    },
+    hideLaunchScreen: async () => {
+      if (kind !== 'native') return false;
+
+      try {
+        await SplashScreen.hide();
+        return true;
+      } catch {
+        return false;
+      }
+    },
   };
 }

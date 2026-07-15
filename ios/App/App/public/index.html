@@ -8,7 +8,7 @@
         />
         <meta
             name="description"
-            content="ki-node bündelt Portfolio, Poster und Blackbox in einem gemeinsamen Hub für Web und iPhone."
+            content="Orbit bündelt Portfolio, Poster und Blackbox in einem gemeinsamen Hub für Web und iPhone."
         />
         <meta name="color-scheme" content="light dark" />
         <meta
@@ -21,18 +21,36 @@
             content="#0b0812"
             media="(prefers-color-scheme: dark)"
         />
-        <title>ki-node – Projekte</title>
-      <script type="module" crossorigin src="./assets/index-dzxjQf-1.js"></script>
-      <link rel="stylesheet" crossorigin href="./assets/index-CvlIgQWo.css">
+        <link rel="icon" type="image/png" href="./orbit-app-icon.png" />
+        <link rel="apple-touch-icon" href="./orbit-app-icon.png" />
+        <title>Orbit – Projekte</title>
+      <script type="module" crossorigin src="./assets/index-B-PZH_Ls.js"></script>
+      <link rel="stylesheet" crossorigin href="./assets/index-4eIM1Zs8.css">
     </head>
     <body>
+        <div class="launch-screen" aria-hidden="true" data-launch-screen>
+            <img
+                class="launch-screen__mark"
+                src="./orbit-app-icon.png"
+                alt=""
+            />
+            <strong>Orbit</strong>
+        </div>
+        <script>
+            // Mirrors the native 15 s auto-hide ceiling if application JavaScript fails early.
+            window.setTimeout(function () {
+                document.documentElement.classList.add('is-hub-ready');
+            }, 16000);
+        </script>
         <div class="hub-shell" data-hub-shell>
             <header class="site-header">
-                <a class="brand" href="./" aria-label="ki-node Startseite">
-                    <span class="brand__mark" aria-hidden="true"
-                        ><i></i><i></i><i></i
-                    ></span>
-                    <span>ki-node</span>
+                <a class="brand" href="./" aria-label="Orbit Startseite">
+                    <img
+                        class="brand__mark"
+                        src="./orbit-app-icon.png"
+                        alt=""
+                    />
+                    <span>Orbit</span>
                 </a>
                 <span class="runtime-badge" data-runtime-label
                     >Hub wird vorbereitet</span
@@ -76,7 +94,7 @@
                 </section>
 
                 <footer class="site-footer">
-                    <span>ki-node / 2026</span>
+                    <span>Orbit / 2026</span>
                     <span>Web + native iOS</span>
                 </footer>
             </main>

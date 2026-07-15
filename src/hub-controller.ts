@@ -6,6 +6,7 @@ import {
   type ProjectId,
 } from './projects';
 import type { HubRuntime } from './runtime';
+import { parsePortfolioLinkMessage } from './bridge-protocol';
 
 interface HubControllerOptions {
   readonly document: Document;
@@ -19,7 +20,13 @@ interface FrameSession {
   readonly element: HTMLIFrameElement;
   readonly onError: () => void;
   readonly onLoad: () => void;
+  readonly onMessage: (event: MessageEvent) => void;
   readonly timeout: number;
+}
+
+interface ScrollPosition {
+  readonly left: number;
+  readonly top: number;
 }
 
 type HistoryMode = 'none' | 'push' | 'replace';
@@ -52,6 +59,7 @@ export class HubController {
   private frameSession: FrameSession | null = null;
   private returnFocus: HTMLElement | null = null;
   private activeHistoryOwned = false;
+  private catalogScrollPosition: ScrollPosition | null = null;
 
   public constructor(options: HubControllerOptions) {
     this.document = options.document;
@@ -103,6 +111,7 @@ export class HubController {
     this.window.removeEventListener('popstate', this.handlePopState);
     this.removeFrame();
     this.resetProjectState(false);
+    this.catalogScrollPosition = null;
     this.initialized = false;
   }
 
@@ -117,6 +126,12 @@ export class HubController {
     if (!project || !isProjectAvailable(project)) return;
 
     const replacesOpenProject = this.activeProject !== null;
+    if (!replacesOpenProject) {
+      this.catalogScrollPosition = {
+        left: this.window.scrollX,
+        top: this.window.scrollY,
+      };
+    }
     this.removeFrame();
     this.activeProject = project;
     this.returnFocus = trigger ?? this.returnFocus;
@@ -157,6 +172,8 @@ export class HubController {
       if (shouldNavigateBack) this.window.history.back();
       else this.clearProjectFromUrl();
     }
+
+    this.restoreCatalogScroll();
 
     if (focusTarget?.isConnected) focusTarget.focus({ preventScroll: true });
     else this.catalogHeading.focus({ preventScroll: true });
@@ -243,7 +260,7 @@ export class HubController {
 
   private createFrame(project: HubProject): void {
     const frame = this.document.createElement('iframe');
-    frame.title = `${project.title} – Projektvorschau in ki-node`;
+    frame.title = `${project.title} – Projektvorschau in Orbit`;
     frame.src = this.runtime.resolveProjectSource(project);
     frame.referrerPolicy = 'no-referrer';
     frame.setAttribute(
@@ -251,32 +268,59 @@ export class HubController {
       'allow-forms allow-modals allow-same-origin allow-scripts',
     );
     frame.setAttribute('data-project-frame', project.id);
-    frame.hidden = true;
+    frame.dataset.frameState = 'loading';
+    frame.setAttribute('aria-hidden', 'true');
+    frame.setAttribute('inert', '');
+    frame.tabIndex = -1;
+    this.frameHost.setAttribute('aria-busy', 'true');
 
     const onLoad = () => {
       if (this.frameSession?.element !== frame) return;
       this.window.clearTimeout(this.frameSession.timeout);
       this.loadState.hidden = true;
       this.errorState.hidden = true;
-      frame.hidden = false;
+      frame.dataset.frameState = 'ready';
+      frame.removeAttribute('aria-hidden');
+      frame.removeAttribute('inert');
+      frame.removeAttribute('tabindex');
+      this.frameHost.removeAttribute('aria-busy');
       this.announcer.textContent = `${project.title} ist bereit.`;
     };
     const onError = () => this.showFrameError(frame);
+    const onMessage = (event: MessageEvent) => {
+      if (
+        this.runtime.kind !== 'native' ||
+        this.activeProject?.id !== 'portfolio' ||
+        this.frameSession?.element !== frame ||
+        event.source !== frame.contentWindow
+      ) {
+        return;
+      }
+
+      const message = parsePortfolioLinkMessage(event.data);
+      if (!message) return;
+      void this.runtime.openExternalUrl(message.url);
+    };
     frame.addEventListener('load', onLoad, { once: true });
     frame.addEventListener('error', onError, { once: true });
+    this.window.addEventListener('message', onMessage);
 
     const timeout = this.window.setTimeout(
       () => this.showFrameError(frame),
       this.loadTimeoutMs,
     );
-    this.frameSession = { element: frame, onError, onLoad, timeout };
+    this.frameSession = { element: frame, onError, onLoad, onMessage, timeout };
     this.frameHost.append(frame);
   }
 
   private showFrameError(frame: HTMLIFrameElement): void {
     if (this.frameSession?.element !== frame) return;
     this.window.clearTimeout(this.frameSession.timeout);
-    frame.hidden = true;
+    frame.dataset.frameState = 'error';
+    frame.setAttribute('aria-hidden', 'true');
+    frame.setAttribute('inert', '');
+    frame.tabIndex = -1;
+    this.frameHost.removeAttribute('aria-busy');
     this.loadState.hidden = true;
     this.errorState.hidden = false;
     this.announcer.textContent = 'Projekt konnte nicht geladen werden.';
@@ -284,12 +328,14 @@ export class HubController {
 
   private removeFrame(): void {
     if (!this.frameSession) return;
-    const { element, onError, onLoad, timeout } = this.frameSession;
+    const { element, onError, onLoad, onMessage, timeout } = this.frameSession;
     this.window.clearTimeout(timeout);
     element.removeEventListener('load', onLoad);
     element.removeEventListener('error', onError);
+    this.window.removeEventListener('message', onMessage);
     element.remove();
     this.frameSession = null;
+    this.frameHost.removeAttribute('aria-busy');
   }
 
   private setLoadingState(): void {
@@ -340,6 +386,17 @@ export class HubController {
     const url = new URL(this.window.location.href);
     url.searchParams.delete('project');
     this.window.history.replaceState({}, '', url);
+  }
+
+  private restoreCatalogScroll(): void {
+    if (!this.catalogScrollPosition) return;
+
+    this.window.scrollTo({
+      behavior: 'auto',
+      left: this.catalogScrollPosition.left,
+      top: this.catalogScrollPosition.top,
+    });
+    this.catalogScrollPosition = null;
   }
 
   private requireElement<T extends Element = HTMLElement>(

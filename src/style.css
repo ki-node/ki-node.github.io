@@ -77,6 +77,39 @@ button {
     display: none !important;
 }
 
+.launch-screen {
+    position: fixed;
+    z-index: 1000;
+    inset: 0;
+    display: grid;
+    align-content: center;
+    justify-items: center;
+    gap: 1rem;
+    padding: max(2rem, env(safe-area-inset-top)) 2rem
+        max(2rem, env(safe-area-inset-bottom));
+    color: #f8f3ff;
+    background: #01011b;
+}
+
+.is-hub-ready .launch-screen {
+    display: none;
+}
+
+.launch-screen strong {
+    font-size: 1.65rem;
+    letter-spacing: -0.045em;
+}
+
+.launch-screen__mark {
+    width: 5.5rem;
+    height: 5.5rem;
+    border-radius: 1.45rem;
+    object-fit: cover;
+    box-shadow:
+        0 0 2rem rgba(68, 201, 255, 0.22),
+        0 0 3.5rem rgba(151, 72, 255, 0.24);
+}
+
 :where(a, button, [tabindex='-1']):focus-visible {
     outline: 3px solid var(--focus);
     outline-offset: 4px;
@@ -112,34 +145,13 @@ button {
 }
 
 .brand__mark {
-    display: flex;
     width: 2.25rem;
     height: 2.25rem;
-    align-items: center;
-    justify-content: center;
-    gap: 0.17rem;
-    border: 1px solid var(--border);
     border-radius: 0.75rem;
-    background: var(--surface);
-    box-shadow: 0 0.5rem 1.5rem rgba(81, 43, 166, 0.1);
-}
-
-.brand__mark i {
-    width: 0.25rem;
-    border-radius: 1rem;
-    background: var(--accent);
-}
-
-.brand__mark i:first-child {
-    height: 0.55rem;
-}
-
-.brand__mark i:nth-child(2) {
-    height: 1.1rem;
-}
-
-.brand__mark i:last-child {
-    height: 0.8rem;
+    object-fit: cover;
+    box-shadow:
+        0 0.5rem 1.5rem rgba(81, 43, 166, 0.18),
+        0 0 1rem rgba(50, 194, 255, 0.14);
 }
 
 .runtime-badge {
@@ -498,22 +510,20 @@ h1 em {
 }
 
 body.is-project-open {
-    height: 100vh;
-    height: 100dvh;
     overflow: hidden;
+    overscroll-behavior: none;
 }
 
-.is-project-open .hub-shell {
-    height: 100vh;
-    height: 100dvh;
-    overflow: hidden;
+.is-project-open .site-header {
+    display: none;
 }
 
 .project-view {
+    position: fixed;
+    z-index: 10;
+    inset: 0;
     display: grid;
-    width: 100%;
-    height: 100vh;
-    height: 100dvh;
+    overflow: hidden;
     min-height: 0;
     grid-template-rows: auto minmax(0, 1fr);
     background: var(--surface-solid);
@@ -618,6 +628,11 @@ body.is-project-open {
     height: 100%;
     border: 0;
     background: var(--surface-solid);
+}
+
+.frame-host iframe:not([data-frame-state='ready']) {
+    opacity: 0;
+    pointer-events: none;
 }
 
 .load-state,

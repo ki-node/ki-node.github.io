@@ -44,7 +44,7 @@ Stand festgeschrieben:
 
 ```text
 Repository:    ki-node/portfolio
-Commit:        62259d04a7293eff3fbb349bc16fc987de117fea
+Commit:        07c6b7eb09bd3d0577d49df657fed2d58097f018
 Build-Befehl:  npm run build:embedded
 Ziel:          public/projects/portfolio/
 ```
@@ -81,10 +81,10 @@ Update:
 CI erzeugt den Build erneut und schlägt fehl, sobald Lock-Datei, Provenienz oder
 eingechecktes Artefakt voneinander abweichen.
 
-Der aktuell festgeschriebene SHA gehört zum Draft-Feature-Branch des Portfolio-
-Folge-PRs. Nach dessen Merge muss dieser Hub-Branch vor dem Merge noch einmal auf
-den endgültigen Squash-Merge-Commit umgestellt und vollständig synchronisiert
-werden.
+Der aktuell festgeschriebene SHA ist der endgültige Squash-Merge-Commit des
+Portfolio-Folge-PRs. Der abschließende Repin wurde vollständig synchronisiert und
+geprüft; weitere Portfolio-Updates erfolgen wieder ausschließlich über eine
+bewusste Lock-Änderung und erneute Synchronisation.
 
 ## Native Projekt-Bridge und Kaltstart
 

@@ -17,7 +17,7 @@ import { validateEmbeddedProject } from './validate-embedded-project.mjs';
 const lockedProject = {
   id: 'portfolio',
   repository: 'ki-node/portfolio',
-  commit: '62259d04a7293eff3fbb349bc16fc987de117fea',
+  commit: '07c6b7eb09bd3d0577d49df657fed2d58097f018',
   buildCommand: 'npm run build:embedded',
   buildOutput: 'dist-embedded',
   targetPath: 'public/projects/portfolio',

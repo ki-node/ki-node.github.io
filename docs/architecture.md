@@ -22,7 +22,7 @@ das lokale Mock-Projekt.
 
 `projects.lock.json` beschreibt eingebettete Projekte mit Repository, vollständigem Commit-SHA,
 erlaubtem Build-Befehl, Build-Ausgabe und lokalem Zielpfad. Der Portfolio-Build stammt exakt aus
-`ki-node/portfolio@62259d04a7293eff3fbb349bc16fc987de117fea`.
+`ki-node/portfolio@07c6b7eb09bd3d0577d49df657fed2d58097f018`.
 
 `npm run sync:projects` checkt diesen Commit in einem Betriebssystem-Temp-Verzeichnis aus, führt
 im isolierten Checkout `npm ci` und `npm run build:embedded` aus und ersetzt das Hub-Artefakt erst
@@ -63,10 +63,10 @@ einer 15-Sekunden-Obergrenze aktiv; damit blockiert ein früher JavaScriptfehler
 nicht unbegrenzt. Diese Maßnahme verbessert die visuelle Kontinuität, behauptet aber keine
 Beschleunigung des zugrunde liegenden WKWebView-Kaltstarts.
 
-Der erste physische Test gilt weiterhin als fehlgeschlagen. Hub-PR #4 bleibt Draft, bis Layout,
-Touch-Reticle, Link-Bridge und Kaltstartdarstellung erneut auf dem physischen iPhone erfolgreich
-geprüft wurden. Nach dem Merge des Portfolio-Folge-PRs muss der Lock-SHA außerdem auf dessen
-endgültigen Squash-Merge-Commit aktualisiert werden.
+Der fünfte physische Test bestätigte Layout, Touch-Reticle, Menü-Scroll-Lock, Link-Bridge,
+Offline-Betrieb und Kaltstartdarstellung erfolgreich. Der Lock-SHA verweist auf den endgültigen
+Squash-Merge-Commit des Portfolio-Folge-PRs. Hub-PR #4 bleibt nur noch wegen des nicht festgelegten
+Produktnamens und des nicht freigegebenen App-Icons Draft.
 
 ## Warum die native App keine Projekte live von GitHub Pages lädt
 

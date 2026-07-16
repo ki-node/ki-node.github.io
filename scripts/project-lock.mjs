@@ -27,6 +27,20 @@ const projectDefinitions = new Map([
             },
         },
     ],
+    [
+        'blackbox',
+        {
+            repository: 'ki-node/blackbox',
+            buildCommand: 'npm run build:embedded',
+            buildOutput: 'dist-embedded',
+            targetPath: 'public/projects/blackbox',
+            sourceProvenance: {
+                project: 'blackbox',
+                context: 'embedded',
+                formatVersion: 1,
+            },
+        },
+    ],
 ]);
 const repositoryPattern = /^[a-z0-9_.-]+\/[a-z0-9_.-]+$/u;
 const commitPattern = /^[0-9a-f]{40}$/u;
@@ -147,6 +161,17 @@ export async function loadProjectLock(repositoryRoot = process.cwd()) {
 }
 
 export function createProjectProvenance(project) {
+    if (project.id === 'blackbox') {
+        return {
+            project: 'blackbox',
+            repository: project.repository,
+            commit: project.commit,
+            buildCommand: project.buildCommand,
+            context: 'embedded',
+            formatVersion: 1,
+        };
+    }
+
     return {
         schemaVersion: 1,
         id: project.id,

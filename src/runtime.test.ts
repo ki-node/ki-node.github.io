@@ -44,6 +44,17 @@ describe('Hub runtime', () => {
     );
   });
 
+  it('resolves Blackbox publicly on the web and locally in the native app', () => {
+    const blackbox = PROJECT_CATALOG[2];
+
+    expect(createHubRuntime('web').resolveProjectSource(blackbox)).toBe(
+      'https://ki-node.github.io/blackbox/',
+    );
+    expect(createHubRuntime('native').resolveProjectSource(blackbox)).toBe(
+      './projects/blackbox/index.html',
+    );
+  });
+
   it('hands allowed native links to the official system app launcher', async () => {
     const openUrl = vi
       .spyOn(AppLauncher, 'openUrl')

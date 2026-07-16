@@ -1,0 +1,8 @@
+{
+  "project": "blackbox",
+  "repository": "ki-node/blackbox",
+  "commit": "48245e4e93451844317c693f171dc7158deeab26",
+  "buildCommand": "npm run build:embedded",
+  "context": "embedded",
+  "formatVersion": 1
+}

@@ -3,7 +3,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { HubController } from './hub-controller';
 import { createHubRuntime } from './runtime';
 import type { HubRuntime } from './runtime';
-import { PORTFOLIO_BRIDGE, POSTER_BRIDGE } from './bridge-protocol';
+import {
+  BLACKBOX_BRIDGE,
+  PORTFOLIO_BRIDGE,
+  POSTER_BRIDGE,
+} from './bridge-protocol';
 import type { PosterExporter } from './poster-export';
 
 const png = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 1, 2, 3]).buffer;
@@ -19,6 +23,14 @@ const posterExportMessage = {
   size: png.byteLength,
   data: png,
 };
+
+const blackboxHapticMessage = {
+  channel: BLACKBOX_BRIDGE.channel,
+  type: BLACKBOX_BRIDGE.type,
+  protocolVersion: BLACKBOX_BRIDGE.protocolVersion,
+  project: BLACKBOX_BRIDGE.project,
+  event: 'light',
+} as const;
 
 const fixture = `
   <div data-runtime-label></div>
@@ -457,6 +469,167 @@ describe('HubController', () => {
       }),
     );
     expect(openExternalUrl).toHaveBeenCalledOnce();
+  });
+
+  it('dispatches every valid Blackbox semantic event exactly once', () => {
+    controller.destroy();
+    const triggerProjectHaptic = vi
+      .fn<HubRuntime['triggerProjectHaptic']>()
+      .mockResolvedValue(true);
+    const runtime = {
+      ...createHubRuntime('native'),
+      triggerProjectHaptic,
+    } satisfies HubRuntime;
+    controller = new HubController({
+      document,
+      window,
+      runtime,
+      loadTimeoutMs: 60_000,
+    });
+    controller.init();
+    controller.openProject('blackbox', null, 'none');
+    const frame = document.querySelector<HTMLIFrameElement>('iframe');
+
+    for (const event of BLACKBOX_BRIDGE.events) {
+      window.dispatchEvent(
+        new MessageEvent('message', {
+          data: { ...blackboxHapticMessage, event },
+          source: frame?.contentWindow ?? null,
+        }),
+      );
+    }
+
+    expect(triggerProjectHaptic).toHaveBeenCalledTimes(6);
+    expect(triggerProjectHaptic.mock.calls.map(([event]) => event)).toEqual(
+      BLACKBOX_BRIDGE.events,
+    );
+  });
+
+  it('rejects invalid Blackbox messages and foreign window sources', () => {
+    controller.destroy();
+    const triggerProjectHaptic = vi
+      .fn<HubRuntime['triggerProjectHaptic']>()
+      .mockResolvedValue(true);
+    const runtime = {
+      ...createHubRuntime('native'),
+      triggerProjectHaptic,
+    } satisfies HubRuntime;
+    controller = new HubController({
+      document,
+      window,
+      runtime,
+      loadTimeoutMs: 60_000,
+    });
+    controller.init();
+    controller.openProject('blackbox', null, 'none');
+    const frame = document.querySelector<HTMLIFrameElement>('iframe');
+
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        data: blackboxHapticMessage,
+        source: window,
+      }),
+    );
+    for (const data of [
+      { ...blackboxHapticMessage, channel: 'orbit-project-bridge' },
+      { ...blackboxHapticMessage, type: 'file-export' },
+      { ...blackboxHapticMessage, protocolVersion: 2 },
+      { ...blackboxHapticMessage, project: 'poster' },
+      { ...blackboxHapticMessage, event: 'custom' },
+      { ...blackboxHapticMessage, event: 42 },
+      { ...blackboxHapticMessage, nativeDuration: 100 },
+      { channel: BLACKBOX_BRIDGE.channel },
+    ]) {
+      window.dispatchEvent(
+        new MessageEvent('message', {
+          data,
+          source: frame?.contentWindow ?? null,
+        }),
+      );
+    }
+
+    expect(triggerProjectHaptic).not.toHaveBeenCalled();
+  });
+
+  it('drops old Blackbox sources after close and does not duplicate listeners', () => {
+    controller.destroy();
+    const triggerProjectHaptic = vi
+      .fn<HubRuntime['triggerProjectHaptic']>()
+      .mockResolvedValue(true);
+    const runtime = {
+      ...createHubRuntime('native'),
+      triggerProjectHaptic,
+    } satisfies HubRuntime;
+    controller = new HubController({
+      document,
+      window,
+      runtime,
+      loadTimeoutMs: 60_000,
+    });
+    controller.init();
+    controller.openProject('blackbox', null, 'none');
+    const firstFrame = document.querySelector<HTMLIFrameElement>('iframe');
+    const firstSource = firstFrame?.contentWindow ?? null;
+    controller.closeProject('none');
+
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        data: blackboxHapticMessage,
+        source: firstSource,
+      }),
+    );
+    controller.openProject('portfolio', null, 'none');
+    const portfolioFrame = document.querySelector<HTMLIFrameElement>('iframe');
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        data: blackboxHapticMessage,
+        source: portfolioFrame?.contentWindow ?? null,
+      }),
+    );
+    controller.openProject('blackbox', null, 'none');
+    const secondFrame = document.querySelector<HTMLIFrameElement>('iframe');
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        data: blackboxHapticMessage,
+        source: secondFrame?.contentWindow ?? null,
+      }),
+    );
+
+    expect(firstFrame?.isConnected).toBe(false);
+    expect(portfolioFrame?.isConnected).toBe(false);
+    expect(secondFrame).not.toBe(firstFrame);
+    expect(triggerProjectHaptic).toHaveBeenCalledOnce();
+    expect(triggerProjectHaptic).toHaveBeenCalledWith('light');
+  });
+
+  it('contains rejected native Blackbox haptic promises', async () => {
+    controller.destroy();
+    const triggerProjectHaptic = vi
+      .fn<HubRuntime['triggerProjectHaptic']>()
+      .mockRejectedValue(new Error('Unavailable'));
+    const runtime = {
+      ...createHubRuntime('native'),
+      triggerProjectHaptic,
+    } satisfies HubRuntime;
+    controller = new HubController({
+      document,
+      window,
+      runtime,
+      loadTimeoutMs: 60_000,
+    });
+    controller.init();
+    controller.openProject('blackbox', null, 'none');
+    const frame = document.querySelector<HTMLIFrameElement>('iframe');
+
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        data: blackboxHapticMessage,
+        source: frame?.contentWindow ?? null,
+      }),
+    );
+    await Promise.resolve();
+
+    expect(triggerProjectHaptic).toHaveBeenCalledOnce();
   });
 
   it('accepts one PNG export only from the active native Poster iframe', async () => {

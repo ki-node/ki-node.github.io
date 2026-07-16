@@ -1,0 +1,842 @@
+<!doctype html>
+<html lang="de" data-runtime-context="embedded">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <meta
+      name="description"
+      content="BLACK BOX ist eine barrierearme, interaktive Rettungsmission in sechs Levels."
+    />
+    <meta name="theme-color" content="#070908" />
+    <title>BLACK BOX – Rettungsmission</title>
+    <link rel="icon" href="./assets/icon-BcXbI1_1.svg" type="image/svg+xml" />
+    <script type="module" crossorigin src="./assets/index-DaPkLM38.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-DFZQAzSS.css">
+  </head>
+  <body>
+    <a class="skip-link" href="#game">Zum Spiel springen</a>
+
+    <div class="atmosphere" aria-hidden="true">
+      <div class="atmosphere__beam"></div>
+      <div class="atmosphere__noise"></div>
+    </div>
+
+    <header class="site-header">
+      <div class="header-actions">
+        <button
+          class="utility-button"
+          type="button"
+          data-audio
+          aria-pressed="true"
+        >
+          <span class="utility-button__lamp" aria-hidden="true"></span>
+          <span data-audio-label>Ton an</span>
+        </button>
+        <button class="utility-button" type="button" data-reset>
+          Neustart
+        </button>
+      </div>
+    </header>
+
+    <main id="game" class="game-shell">
+      <section class="intro" aria-labelledby="page-title" data-intro>
+        <div class="intro__signal" aria-hidden="true">
+          <i></i><i></i><i></i><span>LIVE</span>
+        </div>
+        <p class="eyebrow">BERGUNGSSTATION 7 · 03:17 UHR</p>
+        <h1 id="page-title"><span>23 Jahre still.</span> Jetzt ein Puls.</h1>
+        <p class="intro__copy">
+          Eine Notfallkapsel der verschollenen Asteria ist aufgewacht. In ihrem
+          Inneren wartet keine Aufzeichnung, sondern eine Nachricht von heute.
+          Sechs Sicherungen stehen zwischen dir und der Crew.
+        </p>
+        <button class="action-button intro__start" type="button" data-start>
+          Verbindung herstellen
+        </button>
+        <p class="intro__note">Etwa 8 Minuten · Fortschritt bleibt lokal</p>
+      </section>
+
+      <section
+        class="machine app-game"
+        data-machine
+        aria-labelledby="machine-title"
+        hidden
+      >
+        <div class="machine__topline">
+          <div>
+            <p class="machine__serial">ASTERIA / LIVE CHANNEL</p>
+            <h2 id="machine-title">Notfallkapsel</h2>
+          </div>
+          <div class="machine__state">
+            <span class="state-lamp" aria-hidden="true"></span>
+            <span data-system-state>LEVEL 01/06</span>
+          </div>
+        </div>
+
+        <nav class="progress" aria-label="Spielfortschritt">
+          <div class="progress__current" aria-live="polite">
+            <span data-stage-count>01 / 06</span>
+            <strong data-stage-name>Energie</strong>
+          </div>
+          <ol>
+            <li data-progress="power" aria-current="step">
+              <span>01</span><strong>Energie</strong>
+            </li>
+            <li data-progress="signal">
+              <span>02</span><strong>Signal</strong>
+            </li>
+            <li data-progress="memory"><span>03</span><strong>Echo</strong></li>
+            <li data-progress="route">
+              <span>04</span><strong>Leitungsnetz</strong>
+            </li>
+            <li data-progress="balance">
+              <span>05</span><strong>Balance</strong>
+            </li>
+            <li data-progress="lock">
+              <span>06</span><strong>Verschluss</strong>
+            </li>
+          </ol>
+        </nav>
+
+        <div
+          class="machine__display"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          <span aria-hidden="true">›</span>
+          <p data-status>Schalte die Relais wie in der Gravur ein.</p>
+        </div>
+
+        <div class="energy-bus" aria-hidden="true">
+          <div class="energy-bus__track"><i></i></div>
+          <span data-bus-node="power"><b>1</b><i></i></span>
+          <span data-bus-node="signal"><b>2</b><i></i></span>
+          <span data-bus-node="memory"><b>3</b><i></i></span>
+          <span data-bus-node="route"><b>4</b><i></i></span>
+          <span data-bus-node="balance"><b>5</b><i></i></span>
+          <span data-bus-node="lock"><b>6</b><i></i></span>
+        </div>
+
+        <div class="game-stage">
+          <section
+            class="module module--power"
+            data-module="power"
+            aria-labelledby="power-title"
+          >
+            <div class="module__header">
+              <span class="module__index">01</span>
+              <div>
+                <p>ERSTE SICHERUNG</p>
+                <h3 id="power-title" tabindex="-1">Energie</h3>
+              </div>
+              <span class="module__status" data-module-status>AKTIV</span>
+            </div>
+
+            <div
+              class="relay-clue"
+              role="img"
+              aria-label="Gravur: gefüllt, leer, gefüllt, gefüllt"
+            >
+              <span aria-hidden="true">●</span><span aria-hidden="true">○</span
+              ><span aria-hidden="true">●</span
+              ><span aria-hidden="true">●</span>
+            </div>
+
+            <fieldset class="relay-bank">
+              <legend class="sr-only">Vier Relais einstellen</legend>
+              <button
+                type="button"
+                class="relay"
+                data-relay="0"
+                aria-pressed="false"
+              >
+                <span class="relay__number">R1</span><i aria-hidden="true"></i
+                ><b data-relay-label>AUS</b>
+              </button>
+              <button
+                type="button"
+                class="relay"
+                data-relay="1"
+                aria-pressed="false"
+              >
+                <span class="relay__number">R2</span><i aria-hidden="true"></i
+                ><b data-relay-label>AUS</b>
+              </button>
+              <button
+                type="button"
+                class="relay"
+                data-relay="2"
+                aria-pressed="false"
+              >
+                <span class="relay__number">R3</span><i aria-hidden="true"></i
+                ><b data-relay-label>AUS</b>
+              </button>
+              <button
+                type="button"
+                class="relay"
+                data-relay="3"
+                aria-pressed="false"
+              >
+                <span class="relay__number">R4</span><i aria-hidden="true"></i
+                ><b data-relay-label>AUS</b>
+              </button>
+            </fieldset>
+
+            <button class="action-button" type="button" data-check-power>
+              Stromkreis schließen
+            </button>
+          </section>
+
+          <section
+            class="module module--signal"
+            data-module="signal"
+            aria-labelledby="signal-title"
+            hidden
+            inert
+          >
+            <div class="module__header">
+              <span class="module__index">02</span>
+              <div>
+                <p>ZWEITE SICHERUNG</p>
+                <h3 id="signal-title" tabindex="-1">Signal</h3>
+              </div>
+              <span class="module__status" data-module-status>GESPERRT</span>
+            </div>
+
+            <div class="scope-frame">
+              <canvas
+                data-scope
+                role="img"
+                aria-label="Das aktuelle Signal ist noch nicht ausgerichtet."
+              ></canvas>
+              <span class="scope-frame__target">REFERENZ · LIVE</span>
+            </div>
+
+            <div class="signal-controls">
+              <div class="signal-adjuster">
+                <button
+                  type="button"
+                  data-signal-step="carrier"
+                  data-direction="-1"
+                  aria-label="Frequenz verringern"
+                >
+                  −
+                </button>
+                <label>
+                  <span
+                    >Frequenz
+                    <output data-output="carrier" aria-live="polite"
+                      >4</output
+                    ></span
+                  >
+                  <input
+                    data-signal="carrier"
+                    type="range"
+                    min="0"
+                    max="9"
+                    value="4"
+                  />
+                </label>
+                <button
+                  type="button"
+                  data-signal-step="carrier"
+                  data-direction="1"
+                  aria-label="Frequenz erhöhen"
+                >
+                  +
+                </button>
+              </div>
+              <div class="signal-adjuster">
+                <button
+                  type="button"
+                  data-signal-step="gain"
+                  data-direction="-1"
+                  aria-label="Stärke verringern"
+                >
+                  −
+                </button>
+                <label>
+                  <span
+                    >Stärke
+                    <output data-output="gain" aria-live="polite"
+                      >5</output
+                    ></span
+                  >
+                  <input
+                    data-signal="gain"
+                    type="range"
+                    min="0"
+                    max="9"
+                    value="5"
+                  />
+                </label>
+                <button
+                  type="button"
+                  data-signal-step="gain"
+                  data-direction="1"
+                  aria-label="Stärke erhöhen"
+                >
+                  +
+                </button>
+              </div>
+              <div class="signal-adjuster">
+                <button
+                  type="button"
+                  data-signal-step="phase"
+                  data-direction="-1"
+                  aria-label="Versatz verringern"
+                >
+                  −
+                </button>
+                <label>
+                  <span
+                    >Versatz
+                    <output data-output="phase" aria-live="polite"
+                      >6</output
+                    ></span
+                  >
+                  <input
+                    data-signal="phase"
+                    type="range"
+                    min="0"
+                    max="9"
+                    value="6"
+                  />
+                </label>
+                <button
+                  type="button"
+                  data-signal-step="phase"
+                  data-direction="1"
+                  aria-label="Versatz erhöhen"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+
+            <button class="action-button" type="button" data-check-signal>
+              Signal einrasten
+            </button>
+          </section>
+
+          <section
+            class="module module--memory"
+            data-module="memory"
+            aria-labelledby="memory-title"
+            hidden
+            inert
+          >
+            <div class="module__header">
+              <span class="module__index">03</span>
+              <div>
+                <p>DRITTE SICHERUNG</p>
+                <h3 id="memory-title" tabindex="-1">Echo</h3>
+              </div>
+              <span class="module__status" data-module-status>GESPERRT</span>
+            </div>
+
+            <div class="echo-display" aria-hidden="true">
+              <span data-echo="triangle">△</span>
+              <span data-echo="diamond">◇</span>
+              <span data-echo="circle">○</span>
+              <span data-echo="square">□</span>
+            </div>
+            <p class="echo-instruction">
+              Höre sechs Formen. Spiele danach dieselbe Folge.
+            </p>
+            <button class="secondary-button" type="button" data-play-sequence>
+              Folge abspielen
+            </button>
+
+            <div class="symbol-bank" aria-label="Echo-Formen">
+              <button type="button" data-symbol="triangle" aria-label="Dreieck">
+                <span aria-hidden="true">△</span>
+              </button>
+              <button type="button" data-symbol="diamond" aria-label="Raute">
+                <span aria-hidden="true">◇</span>
+              </button>
+              <button type="button" data-symbol="circle" aria-label="Kreis">
+                <span aria-hidden="true">○</span>
+              </button>
+              <button type="button" data-symbol="square" aria-label="Quadrat">
+                <span aria-hidden="true">□</span>
+              </button>
+            </div>
+            <div
+              class="memory-meter"
+              role="progressbar"
+              aria-label="Eingegebene Formen"
+              aria-valuemin="0"
+              aria-valuemax="6"
+              aria-valuenow="0"
+            >
+              <i></i><i></i><i></i><i></i><i></i><i></i>
+            </div>
+            <p class="sr-only" data-echo-announcement aria-live="assertive"></p>
+          </section>
+
+          <section
+            class="module module--route"
+            data-module="route"
+            aria-labelledby="route-title"
+            hidden
+            inert
+          >
+            <div class="module__header">
+              <span class="module__index">04</span>
+              <div>
+                <p>VIERTE SICHERUNG</p>
+                <h3 id="route-title" tabindex="-1">Leitungsnetz</h3>
+              </div>
+              <span class="module__status" data-module-status>GESPERRT</span>
+            </div>
+            <p class="route-instruction">
+              Verbinde IN oben links mit OUT unten rechts. Tippe eine Kachel, um
+              sie zu drehen. Grüne Leitungen führen bereits Strom.
+            </p>
+            <div class="route-board">
+              <span class="route-port route-port--in" aria-hidden="true"
+                >IN <b>→</b></span
+              >
+              <div class="route-grid" aria-label="Drehbares Leitungsnetz">
+                <button type="button" data-route="0">
+                  <i aria-hidden="true"></i>
+                </button>
+                <button type="button" data-route="1">
+                  <i aria-hidden="true"></i>
+                </button>
+                <button type="button" data-route="2">
+                  <i aria-hidden="true"></i>
+                </button>
+                <button type="button" data-route="3">
+                  <i aria-hidden="true"></i>
+                </button>
+                <button type="button" data-route="4">
+                  <i aria-hidden="true"></i>
+                </button>
+                <button type="button" data-route="5">
+                  <i aria-hidden="true"></i>
+                </button>
+                <button type="button" data-route="6">
+                  <i aria-hidden="true"></i>
+                </button>
+                <button type="button" data-route="7">
+                  <i aria-hidden="true"></i>
+                </button>
+                <button type="button" data-route="8">
+                  <i aria-hidden="true"></i>
+                </button>
+              </div>
+              <span class="route-port route-port--out" aria-hidden="true"
+                ><b>→</b> OUT</span
+              >
+            </div>
+            <p class="route-status" data-route-status role="status">
+              Leitung noch unterbrochen.
+            </p>
+            <button class="action-button" type="button" data-check-route>
+              Leitung prüfen
+            </button>
+          </section>
+
+          <section
+            class="module module--balance"
+            data-module="balance"
+            aria-labelledby="balance-title"
+            hidden
+            inert
+          >
+            <div class="module__header">
+              <span class="module__index">05</span>
+              <div>
+                <p>FÜNFTE SICHERUNG</p>
+                <h3 id="balance-title" tabindex="-1">Balance</h3>
+              </div>
+              <span class="module__status" data-module-status>GESPERRT</span>
+            </div>
+            <div class="balance-clue">
+              <p><b>12</b> Einheiten insgesamt</p>
+              <ul>
+                <li>Die beiden mittleren Kammern sind gleich.</li>
+                <li>Links außen liegt eine Einheit darunter.</li>
+                <li>Rechts außen ist doppelt so voll wie links.</li>
+              </ul>
+            </div>
+            <fieldset class="balance-bank">
+              <legend class="sr-only">Vier Kammern ausbalancieren</legend>
+              <div class="balance-cell" data-balance="0">
+                <button
+                  type="button"
+                  data-balance-up
+                  aria-label="Kammer A erhöhen"
+                >
+                  +
+                </button>
+                <output aria-label="Kammer A">0</output>
+                <i aria-hidden="true"><span></span></i>
+                <button
+                  type="button"
+                  data-balance-down
+                  aria-label="Kammer A verringern"
+                >
+                  −
+                </button>
+              </div>
+              <div class="balance-cell" data-balance="1">
+                <button
+                  type="button"
+                  data-balance-up
+                  aria-label="Kammer B erhöhen"
+                >
+                  +
+                </button>
+                <output aria-label="Kammer B">1</output>
+                <i aria-hidden="true"><span></span></i>
+                <button
+                  type="button"
+                  data-balance-down
+                  aria-label="Kammer B verringern"
+                >
+                  −
+                </button>
+              </div>
+              <div class="balance-cell" data-balance="2">
+                <button
+                  type="button"
+                  data-balance-up
+                  aria-label="Kammer C erhöhen"
+                >
+                  +
+                </button>
+                <output aria-label="Kammer C">4</output>
+                <i aria-hidden="true"><span></span></i>
+                <button
+                  type="button"
+                  data-balance-down
+                  aria-label="Kammer C verringern"
+                >
+                  −
+                </button>
+              </div>
+              <div class="balance-cell" data-balance="3">
+                <button
+                  type="button"
+                  data-balance-up
+                  aria-label="Kammer D erhöhen"
+                >
+                  +
+                </button>
+                <output aria-label="Kammer D">1</output>
+                <i aria-hidden="true"><span></span></i>
+                <button
+                  type="button"
+                  data-balance-down
+                  aria-label="Kammer D verringern"
+                >
+                  −
+                </button>
+              </div>
+            </fieldset>
+            <p class="balance-total">
+              Summe <strong data-balance-total>6</strong> / 12
+            </p>
+            <button class="action-button" type="button" data-check-balance>
+              Balance verriegeln
+            </button>
+          </section>
+
+          <section
+            class="module module--lock"
+            data-module="lock"
+            aria-labelledby="lock-title"
+            hidden
+            inert
+          >
+            <div class="module__header">
+              <span class="module__index">06</span>
+              <div>
+                <p>LETZTE SICHERUNG</p>
+                <h3 id="lock-title" tabindex="-1">Verschluss</h3>
+              </div>
+              <span class="module__status" data-module-status>GESPERRT</span>
+            </div>
+
+            <p class="lock-instruction">
+              Jedes gelöste System liefert einen Messwert. Leite die fünf
+              Ziffern von links nach rechts daraus ab.
+            </p>
+            <div class="key-strip" aria-label="Messwerte für den Verschluss">
+              <span><small>Relais</small><b>AKTIV</b></span>
+              <span><small>Signal</small><b>FREQ</b></span>
+              <span><small>Echo</small><b>LÄNGE</b></span>
+              <span><small>Route</small><b>ECKEN</b></span>
+              <span><small>Route</small><b>LINKS</b></span>
+            </div>
+
+            <fieldset class="number-lock">
+              <legend class="sr-only">
+                Fünfstelligen Verschlusscode einstellen
+              </legend>
+              <div class="number-wheel" data-wheel="0">
+                <button
+                  type="button"
+                  data-wheel-up
+                  aria-label="Ziffer 1 erhöhen"
+                >
+                  +
+                </button>
+                <output aria-label="Ziffer 1">0</output>
+                <button
+                  type="button"
+                  data-wheel-down
+                  aria-label="Ziffer 1 verringern"
+                >
+                  −
+                </button>
+              </div>
+              <div class="number-wheel" data-wheel="1">
+                <button
+                  type="button"
+                  data-wheel-up
+                  aria-label="Ziffer 2 erhöhen"
+                >
+                  +
+                </button>
+                <output aria-label="Ziffer 2">0</output>
+                <button
+                  type="button"
+                  data-wheel-down
+                  aria-label="Ziffer 2 verringern"
+                >
+                  −
+                </button>
+              </div>
+              <div class="number-wheel" data-wheel="2">
+                <button
+                  type="button"
+                  data-wheel-up
+                  aria-label="Ziffer 3 erhöhen"
+                >
+                  +
+                </button>
+                <output aria-label="Ziffer 3">0</output>
+                <button
+                  type="button"
+                  data-wheel-down
+                  aria-label="Ziffer 3 verringern"
+                >
+                  −
+                </button>
+              </div>
+              <div class="number-wheel" data-wheel="3">
+                <button
+                  type="button"
+                  data-wheel-up
+                  aria-label="Ziffer 4 erhöhen"
+                >
+                  +
+                </button>
+                <output aria-label="Ziffer 4">0</output>
+                <button
+                  type="button"
+                  data-wheel-down
+                  aria-label="Ziffer 4 verringern"
+                >
+                  −
+                </button>
+              </div>
+              <div class="number-wheel" data-wheel="4">
+                <button
+                  type="button"
+                  data-wheel-up
+                  aria-label="Ziffer 5 erhöhen"
+                >
+                  +
+                </button>
+                <output aria-label="Ziffer 5">0</output>
+                <button
+                  type="button"
+                  data-wheel-down
+                  aria-label="Ziffer 5 verringern"
+                >
+                  −
+                </button>
+              </div>
+            </fieldset>
+
+            <button
+              class="action-button action-button--danger"
+              type="button"
+              data-unseal
+            >
+              Black Box öffnen
+            </button>
+          </section>
+
+          <section class="mission-summary" data-complete-panel hidden>
+            <p class="eyebrow">KANAL STABIL · RETTUNG UNTERWEGS</p>
+            <h3 tabindex="-1">Mission erfüllt.</h3>
+            <p>
+              Alle sechs Sicherungen sind gelöst. Die Asteria hat geantwortet
+              und die Rettungsroute ist unterwegs.
+            </p>
+            <button class="secondary-button" type="button" data-reopen-finale>
+              Finale erneut ansehen
+            </button>
+          </section>
+        </div>
+
+        <div class="game-actions">
+          <button class="text-button" type="button" data-hint-button>
+            Hinweis
+          </button>
+          <span data-progress-copy>0 von 6 Sicherungen gelöst</span>
+        </div>
+      </section>
+    </main>
+
+    <dialog
+      class="chapter-dialog"
+      data-story-dialog
+      aria-labelledby="chapter-title"
+    >
+      <div class="chapter-dialog__signal" aria-hidden="true">
+        <i></i><i></i>
+      </div>
+      <p class="eyebrow" data-chapter-kicker>KANAL 01 / WIEDERHERGESTELLT</p>
+      <h2 id="chapter-title" data-chapter-title tabindex="-1">
+        Das ist keine Aufzeichnung.
+      </h2>
+      <p class="chapter-dialog__quote" data-chapter-copy></p>
+      <p class="chapter-dialog__context" data-chapter-context></p>
+      <button class="action-button" type="button" data-story-continue>
+        Weiter zu Level 2
+      </button>
+    </dialog>
+
+    <dialog class="hint-dialog" data-hint-dialog aria-labelledby="hint-title">
+      <p class="eyebrow">OPTIONALE HILFE</p>
+      <h2 id="hint-title">Hinweis</h2>
+      <p data-hint>Noch kein Hinweis angefordert.</p>
+      <div class="dialog-actions">
+        <button class="secondary-button" type="button" data-more-hint>
+          Deutlicher
+        </button>
+        <button class="action-button" type="button" data-close-hint>
+          Zurück zum Spiel
+        </button>
+      </div>
+    </dialog>
+
+    <dialog
+      class="transmission finale"
+      data-transmission
+      aria-label="Geöffnete Black Box"
+    >
+      <div class="transmission__frame">
+        <canvas
+          class="anomaly-canvas"
+          data-anomaly-canvas
+          aria-hidden="true"
+        ></canvas>
+
+        <section class="finale-screen" data-finale-screen="open">
+          <p class="eyebrow">SECHS VON SECHS · VERSCHLUSS GELÖST</p>
+          <h2 tabindex="-1">Die Black Box atmet.</h2>
+          <p class="finale-screen__lead">
+            Unter dem Deckel liegt kein Speicher. Ein warmer, handgebauter
+            Sender pulsiert im Takt deines Echos. Die Nachricht darin trägt den
+            Zeitstempel von heute.
+          </p>
+          <button
+            class="action-button"
+            type="button"
+            data-finale-next="message"
+          >
+            Nachricht lesen
+          </button>
+        </section>
+
+        <section class="finale-screen" data-finale-screen="message" hidden>
+          <p class="eyebrow">ASTERIA · NOTKANAL · LIVE</p>
+          <h2 tabindex="-1">„Für euch waren es 23 Jahre.“</h2>
+          <div class="finale-message">
+            <p>
+              „Für uns sind elf Tage vergangen. Das Feld hält die Asteria fest,
+              aber es hat auch unser Altern gebremst.“
+            </p>
+            <p>
+              „Wir haben die Kapsel durch den Riss geschickt. Wenn ein Mensch
+              ihre sechs Sicherungen löst, wissen wir: Die Erde hört noch zu.“
+            </p>
+          </div>
+          <button class="action-button" type="button" data-finale-next="route">
+            Letzten Teil lesen
+          </button>
+        </section>
+
+        <section class="finale-screen" data-finale-screen="route" hidden>
+          <p class="eyebrow">RETTUNGSFENSTER · 31 STUNDEN</p>
+          <h2 tabindex="-1">Du warst die Antwort.</h2>
+          <p class="finale-screen__lead">
+            Die gelösten Leitungen bilden eine sichere Route um das Zeitfeld.
+            Kein Autopilot durfte sie senden: Nach 23 stillen Jahren sollte ein
+            Mensch entscheiden, ob noch jemand kommt.
+          </p>
+          <div class="send-route" aria-hidden="true">
+            <span>ERDE</span><i></i><i></i><i></i><strong>ASTERIA</strong>
+          </div>
+          <button class="action-button" type="button" data-send-signal>
+            Rettungsroute senden
+          </button>
+        </section>
+
+        <section
+          class="finale-screen finale-screen--sending"
+          data-finale-screen="sending"
+          hidden
+        >
+          <p class="eyebrow" role="status">ROUTE WIRD ÜBERTRAGEN</p>
+          <h2 tabindex="-1">Bleib auf dem Kanal.</h2>
+          <div class="transmission-wave" aria-hidden="true">
+            <i></i><i></i><i></i><i></i><i></i>
+          </div>
+          <p class="finale-screen__lead">
+            Das Signal passiert jeden Abschnitt der sicheren Route.
+          </p>
+          <button class="action-button" type="button" data-read-reply disabled>
+            Warte auf Antwort …
+          </button>
+          <p class="sr-only" data-reply-status aria-live="polite"></p>
+        </section>
+
+        <section
+          class="finale-screen finale-screen--ending"
+          data-finale-screen="ending"
+          hidden
+        >
+          <p class="eyebrow">ANTWORT EMPFANGEN · 00:00:00</p>
+          <h2 tabindex="-1">„Wir sehen eure Lichter.“</h2>
+          <p class="finale-screen__lead">
+            Die Asteria bestätigt die Route. Sechsunddreißig Menschen leben.
+            Rettungsschiffe sind unterwegs. Nach 23 Jahren endet der Notruf
+            nicht mit Rauschen, sondern mit einer Antwort.
+          </p>
+          <p class="transmission__meta">MISSION ERFÜLLT · DU BIST FERTIG</p>
+          <div class="transmission__actions">
+            <button class="action-button" type="button" data-close-transmission>
+              Zur Übersicht
+            </button>
+            <button class="secondary-button" type="button" data-restart>
+              Neu starten
+            </button>
+          </div>
+        </section>
+      </div>
+    </dialog>
+  </body>
+</html>

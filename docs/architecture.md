@@ -16,10 +16,10 @@ oder Capacitor und löst ausschließlich dort die passende URL auf:
 - Die native App lädt lokale Embedded-Builds aus dem App-Bundle.
 - Der Web-Hub lädt die öffentlichen GitHub-Pages-Versionen.
 
-Portfolio und Poster sind als echte Projekte integriert. Ihre nativen Katalogeinträge zeigen auf
+Portfolio, Poster und Blackbox sind als echte Projekte integriert. Ihre nativen Katalogeinträge zeigen auf
 die eingecheckten Offline-Builds unter `public/projects/<id>/`, während die Web-Einträge weiterhin
-`https://ki-node.github.io/portfolio/` und `https://ki-node.github.io/poster/` verwenden. Blackbox
-verweist unverändert auf das lokale Mock-Projekt.
+`https://ki-node.github.io/portfolio/`, `https://ki-node.github.io/poster/` und
+`https://ki-node.github.io/blackbox/` verwenden.
 
 ## Versionsfixierung und Lieferkette
 
@@ -28,12 +28,15 @@ erlaubtem Build-Befehl, Build-Ausgabe und lokalem Zielpfad. Die Builds stammen e
 
 - `ki-node/portfolio@07c6b7eb09bd3d0577d49df657fed2d58097f018`
 - `ki-node/poster@755de154b6426c912d7af0caab9e45c75aa4fc7b`
+- `ki-node/blackbox@48245e4e93451844317c693f171dc7158deeab26` (vorläufiger Feature-Pin)
 
 `npm run sync:projects` checkt diesen Commit in einem Betriebssystem-Temp-Verzeichnis aus, führt
 im isolierten Checkout `npm ci` und `npm run build:embedded` aus und ersetzt das Hub-Artefakt erst
 nach erfolgreicher Offline-Prüfung. Lock-Werte werden validiert und nicht zu frei ausführbaren
 Shell-Befehlen zusammengesetzt. Das Skript entfernt alte Zieldateien sowie temporäre Quellen und
-schreibt eine deterministische `ki-node-project.json` als Provenienz in den Build.
+schreibt eine deterministische `ki-node-project.json` als Provenienz in den Build. Die
+Synchronisation ersetzt sowohl `public/projects/<id>/` als auch die bytegleiche Kopie unter
+`ios/App/App/public/projects/<id>/`; alte gehashte Dateien können dadurch nicht liegen bleiben.
 
 Die kompilierten Dateien sind ausnahmsweise eingecheckt, weil sie ein versionsfixierter Bestandteil
 des nativen App-Bundles sind. Vite kopiert sie unverändert nach `dist/projects/<id>/`, danach
@@ -66,6 +69,16 @@ die Binärdaten erst an der nativen Filesystem-Grenze in Base64 um, schreibt sie
 hostgenerierten Cache-Pfad, öffnet das offizielle Share-Sheet und löscht die temporäre Datei in
 jedem Abschlussfall.
 
+Blackbox besitzt ein eigenes, bewusst nicht mit Poster vermischtes Protokoll auf Kanal
+`ki-node.project-bridge`, Typ `haptic`, Protokollversion 1 und Projektkennung `blackbox`. Zulässig
+sind ausschließlich `light`, `medium`, `heavy`, `success`, `warning` und `error`; weitere Felder
+oder native Parameter sind verboten. Der gemeinsame Dispatcher prüft zusätzlich zur Nachricht die
+tatsächliche `MessageEvent.source`, das aktuell geöffnete Projekt und die aktive iframe-Session.
+Nach Schließen oder Wechsel wird der Listener entfernt und die alte Quelle verworfen. Impact- und
+Notification-Ereignisse werden über die offiziellen Typen von `@capacitor/haptics` ausgelöst;
+Pluginfehler werden vollständig abgefangen. Orbit greift weder auf das Blackbox-DOM noch auf den
+Spielstand `black-box-progress-v2` zu.
+
 `allow-downloads` bleibt nur im Web-Hub für den öffentlichen Browser-Download aktiv; im nativen
 iframe wird nie zur Blob-Datei navigiert. Die Permissions Policy `clipboard-write` bleibt
 projektspezifisch bei Poster. Clipboard ist absichtlich nicht Teil der Export-Bridge und verwendet
@@ -87,6 +100,10 @@ Link-Bridge, Offline-Betrieb und Kaltstartdarstellung erfolgreich. Der zweite ph
 Poster-Test bestätigte die pixelgleiche Mini-Vorschau, den nativen PNG-Export, Clipboard und den
 stabilen Wechsel zwischen Poster und Portfolio. Beide Lock-SHAs verweisen auf die endgültigen
 Squash-Merge-Commits der Projekt-Repositories.
+
+Der physische Blackbox-iPhone-Test ist noch ausstehend. Sein aktueller Pin verweist absichtlich auf
+den Feature-SHA aus Draft-PR #17. Nach erfolgreichem Gerätetest und Blackbox-Squash-Merge muss Orbit
+auf den endgültigen Blackbox-Squash-SHA umgepinnt und vollständig neu synchronisiert werden.
 
 ## Warum die native App keine Projekte live von GitHub Pages lädt
 

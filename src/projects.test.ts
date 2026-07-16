@@ -11,7 +11,7 @@ describe('project catalog', () => {
     expect(validateProjectCatalog(PROJECT_CATALOG)).toEqual([]);
   });
 
-  it('integrates Portfolio and Poster while Blackbox remains a mock', () => {
+  it('integrates all three projects with their intended sources and permissions', () => {
     const [portfolio, poster, blackbox] = PROJECT_CATALOG;
 
     expect(portfolio).toMatchObject({
@@ -27,8 +27,16 @@ describe('project catalog', () => {
       framePermissions: ['downloads', 'clipboard-write'],
       status: 'active',
     });
-    expect(blackbox.embeddedUrl).toContain('mock-project/index.html');
-    expect(blackbox.webUrl).toContain('mock-project/index.html');
+    expect(blackbox).toMatchObject({
+      id: 'blackbox',
+      embeddedUrl: './projects/blackbox/index.html',
+      webUrl: 'https://ki-node.github.io/blackbox/',
+      capabilities: ['haptics'],
+      framePermissions: [],
+      status: 'active',
+    });
+    expect(blackbox.embeddedUrl).not.toContain('mock-project');
+    expect(blackbox.webUrl).not.toContain('mock-project');
   });
 
   it('reports duplicate ids and unsafe project sources', () => {

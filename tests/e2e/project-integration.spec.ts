@@ -5,6 +5,8 @@ const portfolioButton = (page: import('@playwright/test').Page) =>
   page.getByRole('button', { name: /Portfolio öffnen/u });
 const posterButton = (page: import('@playwright/test').Page) =>
   page.getByRole('button', { name: /Poster öffnen/u });
+const blackboxButton = (page: import('@playwright/test').Page) =>
+  page.getByRole('button', { name: /Blackbox öffnen/u });
 
 const expectProjectFillsViewport = async (
   page: import('@playwright/test').Page,
@@ -63,7 +65,13 @@ const simulateNativeCapacitor = async (
             name: 'AppLauncher',
             methods: [{ name: 'openUrl', rtype: 'promise' }],
           },
-          { name: 'Haptics', methods: [{ name: 'impact', rtype: 'promise' }] },
+          {
+            name: 'Haptics',
+            methods: [
+              { name: 'impact', rtype: 'promise' },
+              { name: 'notification', rtype: 'promise' },
+            ],
+          },
           {
             name: 'SplashScreen',
             methods: [{ name: 'hide', rtype: 'promise' }],
@@ -640,10 +648,122 @@ test('switches Portfolio to Poster and back without retaining iframe state', asy
   await expect(page.locator('iframe')).toHaveCount(1);
 });
 
-test('web runtime keeps Poster public and Blackbox mocked without network dependence', async ({
+test('native runtime opens pinned Blackbox offline, preserves progress and forwards haptics', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 700 });
+  await simulateNativeCapacitor(page);
+  const externalRequests: string[] = [];
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.route('**/*', async (route) => {
+    const url = new URL(route.request().url());
+    if (url.origin === 'http://127.0.0.1:4173') await route.continue();
+    else {
+      externalRequests.push(url.href);
+      await route.abort('internetdisconnected');
+    }
+  });
+
+  await page.goto('/');
+  const button = blackboxButton(page);
+  await button.click();
+  const iframe = page.locator('iframe[data-project-frame="blackbox"]');
+  await expect(iframe).toHaveAttribute('src', './projects/blackbox/index.html');
+  await expect(iframe).not.toHaveAttribute('allow');
+  await expect(iframe).not.toHaveAttribute('sandbox', /allow-downloads/u);
+  await expect(iframe).not.toHaveAttribute('sandbox', /allow-top-navigation/u);
+  await expect(iframe).toHaveAttribute('data-frame-state', 'ready');
+  await expectProjectFillsViewport(page);
+
+  const blackbox = page.frameLocator('iframe[data-project-frame="blackbox"]');
+  await expect(blackbox.locator('html')).toHaveAttribute(
+    'data-runtime-context',
+    'embedded',
+  );
+  await expect(blackbox.locator('link[rel="manifest"]')).toHaveCount(0);
+  await expect(blackbox.locator('[data-install]')).toHaveCount(0);
+  expect(
+    await page.evaluate(() =>
+      (
+        window as Window & {
+          __nativeBridgeCalls?: { pluginId: string }[];
+        }
+      ).__nativeBridgeCalls?.filter((call) => call.pluginId === 'Haptics'),
+    ),
+  ).toEqual([]);
+
+  await blackbox.getByRole('button', { name: 'Verbindung herstellen' }).click();
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        (
+          window as Window & {
+            __nativeBridgeCalls?: {
+              pluginId: string;
+              methodName: string;
+              options: Record<string, unknown>;
+            }[];
+          }
+        ).__nativeBridgeCalls?.filter((call) => call.pluginId === 'Haptics'),
+      ),
+    )
+    .toEqual([
+      {
+        pluginId: 'Haptics',
+        methodName: 'impact',
+        options: { style: 'LIGHT' },
+      },
+    ]);
+
+  const progress = await iframe.evaluate((element) =>
+    (element as HTMLIFrameElement).contentWindow?.localStorage.getItem(
+      'black-box-progress-v2',
+    ),
+  );
+  expect(progress).toContain('"started":true');
+
+  await page.getByRole('button', { name: 'Projekte' }).click();
+  await expect(iframe).toHaveCount(0);
+  await expect(button).toBeFocused();
+  await button.click();
+  const reopened = page.locator('iframe[data-project-frame="blackbox"]');
+  await expect(reopened).toHaveAttribute('data-frame-state', 'ready');
+  expect(
+    await reopened.evaluate((element) =>
+      (element as HTMLIFrameElement).contentWindow?.localStorage.getItem(
+        'black-box-progress-v2',
+      ),
+    ),
+  ).toBe(progress);
+  await expect(
+    page
+      .frameLocator('iframe[data-project-frame="blackbox"]')
+      .getByRole('button', { name: 'Stromkreis schließen' }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Projekte' }).click();
+
+  await posterButton(page).click();
+  await expect(
+    page.locator('iframe[data-project-frame="poster"]'),
+  ).toHaveAttribute('data-frame-state', 'ready');
+  await page.getByRole('button', { name: 'Projekte' }).click();
+  await portfolioButton(page).click();
+  await expect(
+    page.locator('iframe[data-project-frame="portfolio"]'),
+  ).toHaveAttribute('data-frame-state', 'ready');
+
+  expect(externalRequests).toEqual([]);
+  expect(errors).toEqual([]);
+});
+
+test('web runtime keeps Poster and Blackbox on their public sources', async ({
   page,
 }) => {
   await page.route('https://ki-node.github.io/poster/**', (route) =>
+    route.abort('internetdisconnected'),
+  );
+  await page.route('https://ki-node.github.io/blackbox/**', (route) =>
     route.abort('internetdisconnected'),
   );
   await page.goto('/');
@@ -652,13 +772,10 @@ test('web runtime keeps Poster public and Blackbox mocked without network depend
     page.locator('iframe[data-project-frame="poster"]'),
   ).toHaveAttribute('src', 'https://ki-node.github.io/poster/');
   await page.getByRole('button', { name: 'Projekte' }).click();
-  await page.getByRole('button', { name: /Blackbox öffnen/u }).click();
+  await blackboxButton(page).click();
   await expect(
     page.locator('iframe[data-project-frame="blackbox"]'),
-  ).toHaveAttribute(
-    'src',
-    /mock-project\/index\.html\?project=blackbox&source=web/u,
-  );
+  ).toHaveAttribute('src', 'https://ki-node.github.io/blackbox/');
 });
 
 test('keeps the Hub and active Poster frame accessible', async ({ page }) => {

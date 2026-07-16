@@ -2,7 +2,8 @@ import { Capacitor } from '@capacitor/core';
 import { AppLauncher } from '@capacitor/app-launcher';
 import { SplashScreen } from '@capacitor/splash-screen';
 
-import { triggerMediumHaptic } from './haptics';
+import type { BlackboxHapticEvent } from './bridge-protocol';
+import { triggerMediumHaptic, triggerSemanticHaptic } from './haptics';
 import type { HubProject, ProjectCapability } from './projects';
 
 export type RuntimeKind = 'native' | 'web';
@@ -12,7 +13,8 @@ export interface HubRuntime {
   readonly label: string;
   resolveProjectSource(project: HubProject): string;
   supports(capability: ProjectCapability): boolean;
-  triggerOpenFeedback(): Promise<boolean>;
+  triggerOpenFeedback(project: HubProject): Promise<boolean>;
+  triggerProjectHaptic(event: BlackboxHapticEvent): Promise<boolean>;
   openExternalUrl(url: string): Promise<boolean>;
   hideLaunchScreen(): Promise<boolean>;
 }
@@ -30,8 +32,12 @@ export function createHubRuntime(
     resolveProjectSource: (project) =>
       kind === 'native' ? project.embeddedUrl : project.webUrl,
     supports: (capability) => capability === 'haptics' && kind === 'native',
-    triggerOpenFeedback: async () =>
-      kind === 'native' ? triggerMediumHaptic() : Promise.resolve(false),
+    triggerOpenFeedback: async (project) =>
+      kind === 'native' && project.id !== 'blackbox'
+        ? triggerMediumHaptic()
+        : Promise.resolve(false),
+    triggerProjectHaptic: async (event) =>
+      kind === 'native' ? triggerSemanticHaptic(event) : Promise.resolve(false),
     openExternalUrl: async (url) => {
       if (kind !== 'native') return false;
 

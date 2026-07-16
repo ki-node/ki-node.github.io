@@ -34,7 +34,7 @@ const lockedPoster = {
 const lockedBlackbox = {
   id: 'blackbox',
   repository: 'ki-node/blackbox',
-  commit: '48245e4e93451844317c693f171dc7158deeab26',
+  commit: '50c7dfbb79704e1d422bc739d49cbb28cfd21640',
   buildCommand: 'npm run build:embedded',
   buildOutput: 'dist-embedded',
   targetPath: 'public/projects/blackbox',
@@ -101,7 +101,7 @@ describe('project lock', () => {
     const provenance = {
       project: 'blackbox',
       repository: 'ki-node/blackbox',
-      commit: '48245e4e93451844317c693f171dc7158deeab26',
+      commit: '50c7dfbb79704e1d422bc739d49cbb28cfd21640',
       buildCommand: 'npm run build:embedded',
       context: 'embedded',
       formatVersion: 1,

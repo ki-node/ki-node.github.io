@@ -8,9 +8,8 @@ denselben Build lokal in die iOS-App ein; es wird keine externe Server-URL verwe
 Produktname im Web und auf iOS ist ausschließlich Orbit.
 
 Der aktuelle Projektkatalog enthält Portfolio, Poster und Blackbox. Alle drei Projekte sind in
-der nativen App als versionsfixierte Offline-Builds integriert. Blackbox ist für den ausstehenden
-physischen iPhone-Test vorläufig auf den Feature-Commit aus Draft-PR #17 festgeschrieben. Die
-Architekturentscheidung ist unter
+der nativen App als versionsfixierte Offline-Builds integriert und auf ihre endgültigen
+Squash-Merge-Commits festgeschrieben. Die Architekturentscheidung ist unter
 [`docs/architecture.md`](docs/architecture.md) dokumentiert.
 
 ## Voraussetzungen
@@ -61,7 +60,7 @@ Portfolio: ki-node/portfolio@07c6b7eb09bd3d0577d49df657fed2d58097f018
            npm run build:embedded → public/projects/portfolio/
 Poster:    ki-node/poster@755de154b6426c912d7af0caab9e45c75aa4fc7b
            npm run build:embedded → public/projects/poster/
-Blackbox:  ki-node/blackbox@48245e4e93451844317c693f171dc7158deeab26
+Blackbox:  ki-node/blackbox@50c7dfbb79704e1d422bc739d49cbb28cfd21640
            npm run build:embedded → public/projects/blackbox/
 ```
 
@@ -97,12 +96,12 @@ Update:
 CI erzeugt den Build erneut und schlägt fehl, sobald Lock-Datei, Provenienz oder
 eingechecktes Artefakt voneinander abweichen.
 
-Portfolio und Poster sind jeweils auf ihren endgültigen Squash-Merge-Commit festgeschrieben.
-Blackbox ist dagegen bewusst vorläufig auf
-`48245e4e93451844317c693f171dc7158deeab26` aus
-[Blackbox-PR #17](https://github.com/ki-node/blackbox/pull/17) gepinnt. Nach erfolgreichem
-physischen iPhone-Test wird Blackbox separat per Squash gemergt; anschließend ist ein letzter
-Orbit-Repin auf den endgültigen Squash-SHA samt erneuter Synchronisation und Prüfung erforderlich.
+Portfolio, Poster und Blackbox sind jeweils auf ihren endgültigen Squash-Merge-Commit
+festgeschrieben. Blackbox verwendet
+`50c7dfbb79704e1d422bc739d49cbb28cfd21640` aus dem gemergten
+[Blackbox-PR #17](https://github.com/ki-node/blackbox/pull/17). Der zuvor gepinnte Feature-Stand
+wurde auf einem iPhone 17 Pro mit iOS 26.5.2 vollständig erfolgreich getestet; der finale
+Squash-Commit besitzt denselben Quellbaum und erzeugt abgesehen vom Provenienz-SHA denselben Build.
 
 ## Native Projekt-Bridge und Kaltstart
 

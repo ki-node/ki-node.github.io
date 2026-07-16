@@ -28,7 +28,7 @@ erlaubtem Build-Befehl, Build-Ausgabe und lokalem Zielpfad. Die Builds stammen e
 
 - `ki-node/portfolio@07c6b7eb09bd3d0577d49df657fed2d58097f018`
 - `ki-node/poster@755de154b6426c912d7af0caab9e45c75aa4fc7b`
-- `ki-node/blackbox@48245e4e93451844317c693f171dc7158deeab26` (vorläufiger Feature-Pin)
+- `ki-node/blackbox@50c7dfbb79704e1d422bc739d49cbb28cfd21640`
 
 `npm run sync:projects` checkt diesen Commit in einem Betriebssystem-Temp-Verzeichnis aus, führt
 im isolierten Checkout `npm ci` und `npm run build:embedded` aus und ersetzt das Hub-Artefakt erst
@@ -101,9 +101,11 @@ Poster-Test bestätigte die pixelgleiche Mini-Vorschau, den nativen PNG-Export, 
 stabilen Wechsel zwischen Poster und Portfolio. Beide Lock-SHAs verweisen auf die endgültigen
 Squash-Merge-Commits der Projekt-Repositories.
 
-Der physische Blackbox-iPhone-Test ist noch ausstehend. Sein aktueller Pin verweist absichtlich auf
-den Feature-SHA aus Draft-PR #17. Nach erfolgreichem Gerätetest und Blackbox-Squash-Merge muss Orbit
-auf den endgültigen Blackbox-Squash-SHA umgepinnt und vollständig neu synchronisiert werden.
+Der physische Blackbox-Test auf einem iPhone 17 Pro mit iOS 26.5.2 bestätigte Offline-Betrieb,
+alle sechs Level, Layout und Viewports, Audio-Cleanup, Fortschrittserhalt sowie die semantische
+native Haptik. Blackbox-PR #17 wurde anschließend per Squash gemergt und Orbit auf den endgültigen
+Squash-SHA umgepinnt. Der Squash-Commit besitzt denselben Quellbaum wie der getestete Feature-Head;
+der neu synchronisierte Build unterscheidet sich deshalb ausschließlich im Provenienz-SHA.
 
 ## Warum die native App keine Projekte live von GitHub Pages lädt
 

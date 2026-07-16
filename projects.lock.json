@@ -8,6 +8,14 @@
 			"buildCommand": "npm run build:embedded",
 			"buildOutput": "dist-embedded",
 			"targetPath": "public/projects/portfolio"
+		},
+		{
+			"id": "poster",
+			"repository": "ki-node/poster",
+			"commit": "755de154b6426c912d7af0caab9e45c75aa4fc7b",
+			"buildCommand": "npm run build:embedded",
+			"buildOutput": "dist-embedded",
+			"targetPath": "public/projects/poster"
 		}
 	]
 }

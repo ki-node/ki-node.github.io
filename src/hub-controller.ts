@@ -6,7 +6,14 @@ import {
   type ProjectId,
 } from './projects';
 import type { HubRuntime } from './runtime';
-import { parsePortfolioLinkMessage } from './bridge-protocol';
+import {
+  createPosterExportResultMessage,
+  createPosterHostReadyMessage,
+  isPosterProjectReadyMessage,
+  parsePortfolioLinkMessage,
+  parsePosterFileExportMessage,
+} from './bridge-protocol';
+import { createPosterExporter, type PosterExporter } from './poster-export';
 
 interface HubControllerOptions {
   readonly document: Document;
@@ -14,6 +21,7 @@ interface HubControllerOptions {
   readonly runtime: HubRuntime;
   readonly catalog?: readonly HubProject[];
   readonly loadTimeoutMs?: number;
+  readonly posterExporter?: PosterExporter;
 }
 
 interface FrameSession {
@@ -21,6 +29,7 @@ interface FrameSession {
   readonly onError: () => void;
   readonly onLoad: () => void;
   readonly onMessage: (event: MessageEvent) => void;
+  readonly seenPosterExportRequests: Set<string>;
   readonly timeout: number;
 }
 
@@ -40,6 +49,7 @@ export class HubController {
   private readonly runtime: HubRuntime;
   private readonly catalog: readonly HubProject[];
   private readonly loadTimeoutMs: number;
+  private readonly posterExporter: PosterExporter;
   private readonly catalogView: HTMLElement;
   private readonly projectView: HTMLElement;
   private readonly projectList: HTMLElement;
@@ -67,6 +77,7 @@ export class HubController {
     this.runtime = options.runtime;
     this.catalog = options.catalog ?? PROJECT_CATALOG;
     this.loadTimeoutMs = options.loadTimeoutMs ?? 12_000;
+    this.posterExporter = options.posterExporter ?? createPosterExporter();
     assertValidProjectCatalog(this.catalog);
 
     this.catalogView = this.requireElement('[data-catalog-view]');
@@ -263,10 +274,22 @@ export class HubController {
     frame.title = `${project.title} – Projektvorschau in Orbit`;
     frame.src = this.runtime.resolveProjectSource(project);
     frame.referrerPolicy = 'no-referrer';
-    frame.setAttribute(
-      'sandbox',
-      'allow-forms allow-modals allow-same-origin allow-scripts',
-    );
+    const sandboxTokens = [
+      'allow-forms',
+      'allow-modals',
+      'allow-same-origin',
+      'allow-scripts',
+    ];
+    if (
+      this.runtime.kind === 'web' &&
+      project.framePermissions.includes('downloads')
+    ) {
+      sandboxTokens.push('allow-downloads');
+    }
+    frame.setAttribute('sandbox', sandboxTokens.join(' '));
+    if (project.framePermissions.includes('clipboard-write')) {
+      frame.setAttribute('allow', 'clipboard-write');
+    }
     frame.setAttribute('data-project-frame', project.id);
     frame.dataset.frameState = 'loading';
     frame.setAttribute('aria-hidden', 'true');
@@ -285,21 +308,59 @@ export class HubController {
       frame.removeAttribute('tabindex');
       this.frameHost.removeAttribute('aria-busy');
       this.announcer.textContent = `${project.title} ist bereit.`;
+      this.sendPosterHostReady(frame, project);
     };
     const onError = () => this.showFrameError(frame);
     const onMessage = (event: MessageEvent) => {
       if (
         this.runtime.kind !== 'native' ||
-        this.activeProject?.id !== 'portfolio' ||
+        this.activeProject?.id !== project.id ||
         this.frameSession?.element !== frame ||
         event.source !== frame.contentWindow
       ) {
         return;
       }
 
-      const message = parsePortfolioLinkMessage(event.data);
+      if (project.id === 'portfolio') {
+        const message = parsePortfolioLinkMessage(event.data);
+        if (message) void this.runtime.openExternalUrl(message.url);
+        return;
+      }
+
+      if (project.id !== 'poster') return;
+      if (isPosterProjectReadyMessage(event.data)) {
+        this.sendPosterHostReady(frame, project);
+        return;
+      }
+
+      const message = parsePosterFileExportMessage(event.data);
       if (!message) return;
-      void this.runtime.openExternalUrl(message.url);
+      const session = this.frameSession;
+      if (session.seenPosterExportRequests.has(message.requestId)) return;
+      session.seenPosterExportRequests.add(message.requestId);
+      void this.posterExporter
+        .exportPng(message)
+        .then((status) => {
+          if (this.frameSession !== session) return;
+          frame.contentWindow?.postMessage(
+            createPosterExportResultMessage(message.requestId, status),
+            '*',
+          );
+          this.announcer.textContent =
+            status === 'error'
+              ? 'Poster konnte nicht geteilt werden.'
+              : status === 'cancelled'
+                ? 'Poster-Export abgebrochen.'
+                : 'Poster zum Teilen bereit.';
+        })
+        .catch(() => {
+          if (this.frameSession !== session) return;
+          frame.contentWindow?.postMessage(
+            createPosterExportResultMessage(message.requestId, 'error'),
+            '*',
+          );
+          this.announcer.textContent = 'Poster konnte nicht geteilt werden.';
+        });
     };
     frame.addEventListener('load', onLoad, { once: true });
     frame.addEventListener('error', onError, { once: true });
@@ -309,8 +370,29 @@ export class HubController {
       () => this.showFrameError(frame),
       this.loadTimeoutMs,
     );
-    this.frameSession = { element: frame, onError, onLoad, onMessage, timeout };
+    this.frameSession = {
+      element: frame,
+      onError,
+      onLoad,
+      onMessage,
+      seenPosterExportRequests: new Set(),
+      timeout,
+    };
     this.frameHost.append(frame);
+  }
+
+  private sendPosterHostReady(
+    frame: HTMLIFrameElement,
+    project: HubProject,
+  ): void {
+    if (
+      this.runtime.kind !== 'native' ||
+      project.id !== 'poster' ||
+      this.frameSession?.element !== frame
+    ) {
+      return;
+    }
+    frame.contentWindow?.postMessage(createPosterHostReadyMessage(), '*');
   }
 
   private showFrameError(frame: HTMLIFrameElement): void {

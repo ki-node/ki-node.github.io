@@ -13,6 +13,20 @@ const projectDefinitions = new Map([
             targetPath: 'public/projects/portfolio',
         },
     ],
+    [
+        'poster',
+        {
+            repository: 'ki-node/poster',
+            buildCommand: 'npm run build:embedded',
+            buildOutput: 'dist-embedded',
+            targetPath: 'public/projects/poster',
+            sourceProvenance: {
+                formatVersion: 1,
+                projectId: 'poster',
+                buildContext: 'embedded',
+            },
+        },
+    ],
 ]);
 const repositoryPattern = /^[a-z0-9_.-]+\/[a-z0-9_.-]+$/u;
 const commitPattern = /^[0-9a-f]{40}$/u;
@@ -136,6 +150,18 @@ export function createProjectProvenance(project) {
     return {
         schemaVersion: 1,
         id: project.id,
+        repository: project.repository,
+        commit: project.commit,
+        buildCommand: project.buildCommand,
+    };
+}
+
+export function expectedSourceProvenance(project) {
+    const definition = projectDefinitions.get(project.id);
+    if (!definition?.sourceProvenance) return null;
+
+    return {
+        ...definition.sourceProvenance,
         repository: project.repository,
         commit: project.commit,
         buildCommand: project.buildCommand,

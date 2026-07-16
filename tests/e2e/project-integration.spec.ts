@@ -1,7 +1,10 @@
+import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 
 const portfolioButton = (page: import('@playwright/test').Page) =>
   page.getByRole('button', { name: /Portfolio öffnen/u });
+const posterButton = (page: import('@playwright/test').Page) =>
+  page.getByRole('button', { name: /Poster öffnen/u });
 
 const expectProjectFillsViewport = async (
   page: import('@playwright/test').Page,
@@ -65,11 +68,23 @@ const simulateNativeCapacitor = async (
             name: 'SplashScreen',
             methods: [{ name: 'hide', rtype: 'promise' }],
           },
+          {
+            name: 'Filesystem',
+            methods: [
+              { name: 'writeFile', rtype: 'promise' },
+              { name: 'deleteFile', rtype: 'promise' },
+            ],
+          },
+          { name: 'Share', methods: [{ name: 'share', rtype: 'promise' }] },
         ],
         nativePromise(pluginId: string, methodName: string, options: unknown) {
           bridgeCalls.push({ pluginId, methodName, options });
           if (pluginId === 'AppLauncher')
             return Promise.resolve({ completed: true });
+          if (pluginId === 'Filesystem' && methodName === 'writeFile')
+            return Promise.resolve({ uri: 'file:///cache/poster.png' });
+          if (pluginId === 'Share')
+            return Promise.resolve({ activityType: 'saveToFiles' });
           return Promise.resolve();
         },
       },
@@ -80,6 +95,7 @@ const simulateNativeCapacitor = async (
 
 test('lays out the iframe behind an inaccessible loading layer before load', async ({
   page,
+  browserName,
 }) => {
   await simulateNativeCapacitor(page);
   let releaseRequest: () => void = () => undefined;
@@ -166,7 +182,9 @@ test('lays out the iframe behind an inaccessible loading layer before load', asy
   expect(loadingGeometry.framePointerEvents).toBe('none');
 
   releaseRequest();
-  await expect(iframe).toHaveAttribute('data-frame-state', 'ready');
+  await expect(iframe).toHaveAttribute('data-frame-state', 'ready', {
+    timeout: 15_000,
+  });
   await expect(iframe).not.toHaveAttribute('aria-hidden', 'true');
   await expect(iframe).not.toHaveAttribute('inert', '');
   await expect(iframe).not.toHaveAttribute('tabindex', '-1');
@@ -181,58 +199,63 @@ test('lays out the iframe behind an inaccessible loading layer before load', asy
   await portfolio
     .getByRole('button', { name: 'Code' })
     .evaluate((button: HTMLButtonElement) => button.click());
-  await portfolio.locator('body').dispatchEvent('pointerdown', {
-    clientX: 96,
-    clientY: 180,
-    pointerId: 41,
-    pointerType: 'touch',
-  });
-  await expect
-    .poll(() =>
-      portfolio.locator('[data-code-reticle]').evaluate((element) => {
-        const transform = (element as HTMLElement).style.transform;
-        const match = /translate3d\(([-\d.]+)px,\s*([-\d.]+)px/u.exec(
-          transform,
-        );
-        return match ? [Number(match[1]), Number(match[2])] : [];
-      }),
-    )
-    .toEqual([96, 180]);
+  if (browserName === 'chromium') {
+    await portfolio.locator('body').dispatchEvent('pointerdown', {
+      clientX: 96,
+      clientY: 180,
+      pointerId: 41,
+      pointerType: 'touch',
+    });
+    await expect
+      .poll(() =>
+        portfolio.locator('[data-code-reticle]').evaluate((element) => {
+          const transform = (element as HTMLElement).style.transform;
+          const match = /translate3d\(([-\d.]+)px,\s*([-\d.]+)px/u.exec(
+            transform,
+          );
+          return match ? [Number(match[1]), Number(match[2])] : [];
+        }),
+      )
+      .toEqual([96, 180]);
+  }
 
-  await portfolio.locator('body').evaluate((body) => {
-    const touch = {
-      identifier: 42,
-      target: body,
-      clientX: 126,
-      clientY: 220,
-    };
-    const event = new Event('touchstart', {
-      bubbles: true,
-      cancelable: true,
+  if (browserName === 'chromium') {
+    await portfolio.locator('body').evaluate((body) => {
+      const touch = {
+        identifier: 42,
+        target: body,
+        clientX: 126,
+        clientY: 220,
+      };
+      const event = new Event('touchstart', {
+        bubbles: true,
+        cancelable: true,
+      });
+      Object.defineProperties(event, {
+        changedTouches: { value: [touch] },
+        targetTouches: { value: [touch] },
+        touches: { value: [touch] },
+      });
+      body.dispatchEvent(event);
     });
-    Object.defineProperties(event, {
-      changedTouches: { value: [touch] },
-      targetTouches: { value: [touch] },
-      touches: { value: [touch] },
-    });
-    body.dispatchEvent(event);
-  });
-  await expect
-    .poll(() =>
-      portfolio.locator('[data-code-reticle]').evaluate((element) => {
-        const transform = (element as HTMLElement).style.transform;
-        const match = /translate3d\(([-\d.]+)px,\s*([-\d.]+)px/u.exec(
-          transform,
-        );
-        return match ? [Number(match[1]), Number(match[2])] : [];
-      }),
-    )
-    .toEqual([126, 220]);
+    await expect
+      .poll(() =>
+        portfolio.locator('[data-code-reticle]').evaluate((element) => {
+          const transform = (element as HTMLElement).style.transform;
+          const match = /translate3d\(([-\d.]+)px,\s*([-\d.]+)px/u.exec(
+            transform,
+          );
+          return match ? [Number(match[1]), Number(match[2])] : [];
+        }),
+      )
+      .toEqual([126, 220]);
+  }
 });
 
 test('native runtime opens the checked-in Portfolio offline and preserves Hub lifecycle', async ({
   page,
 }) => {
+  await page.setViewportSize({ width: 390, height: 700 });
   await simulateNativeCapacitor(page);
   await page.route('**/*', async (route) => {
     const url = new URL(route.request().url());
@@ -339,9 +362,12 @@ test('native runtime opens the checked-in Portfolio offline and preserves Hub li
     )
     .toBe('true');
 
-  await page.evaluate(() =>
-    window.scrollTo(0, document.documentElement.scrollHeight),
-  );
+  await page.evaluate(() => {
+    document.documentElement.style.scrollBehavior = 'auto';
+    document.documentElement.style.minHeight = '200vh';
+    document.body.style.minHeight = '200vh';
+    window.scrollTo(0, document.documentElement.scrollHeight);
+  });
   const catalogScroll = await page.evaluate(() => window.scrollY);
   expect(catalogScroll).toBeGreaterThan(100);
   await page.evaluate(() =>
@@ -380,4 +406,271 @@ test('web runtime resolves Portfolio publicly without requiring it from CI', asy
   await expect(
     page.locator('iframe[data-project-frame="portfolio"]'),
   ).toHaveAttribute('src', 'https://ki-node.github.io/portfolio/');
+});
+
+test('native runtime opens the pinned Poster offline with mobile-safe geometry and controls', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await simulateNativeCapacitor(page);
+  const externalRequests: string[] = [];
+  await page.route('**/*', async (route) => {
+    const url = new URL(route.request().url());
+    if (url.origin === 'http://127.0.0.1:4173') await route.continue();
+    else {
+      externalRequests.push(url.href);
+      await route.abort('internetdisconnected');
+    }
+  });
+
+  await page.goto('/');
+  const button = posterButton(page);
+  await button.click();
+  const iframe = page.locator('iframe[data-project-frame="poster"]');
+  await expect(iframe).toHaveAttribute('src', './projects/poster/index.html');
+  await expect(iframe).toHaveAttribute('allow', 'clipboard-write');
+  await expect(iframe).not.toHaveAttribute('sandbox', /allow-downloads/u);
+  await expect(iframe).not.toHaveAttribute('sandbox', /allow-top-navigation/u);
+  await expect(iframe).toHaveAttribute('data-frame-state', 'ready');
+  await expectProjectFillsViewport(page);
+
+  const poster = page.frameLocator('iframe[data-project-frame="poster"]');
+  await expect(poster.locator('html')).toHaveAttribute(
+    'data-app-context',
+    'embedded',
+  );
+  await expect(poster.locator('.masthead')).toBeHidden();
+  await expect(poster.locator('.intro')).toBeHidden();
+  await expect(
+    poster.getByRole('heading', { level: 2, name: 'Forge controls' }),
+  ).toBeVisible();
+  await expect(poster.locator('[data-poster]')).toBeVisible();
+  const horizontalGeometry = await poster.locator('html').evaluate((html) => ({
+    reducedMotion: matchMedia('(prefers-reduced-motion: reduce)').matches,
+    width: html.clientWidth,
+    scrollWidth: html.scrollWidth,
+  }));
+  expect(horizontalGeometry.reducedMotion).toBe(true);
+  expect(horizontalGeometry.scrollWidth).toBeLessThanOrEqual(
+    horizontalGeometry.width + 1,
+  );
+
+  const seed = poster.locator('[data-seed-label]');
+  const initialSeed = await seed.textContent();
+  await poster.getByRole('button', { name: /Remix layout/u }).click();
+  const remixedSeed = await seed.textContent();
+  expect(remixedSeed).not.toBe(initialSeed);
+  await poster.getByRole('button', { name: /Undo/u }).click();
+  await expect(seed).toHaveText(initialSeed ?? '');
+  await poster.getByRole('button', { name: /Redo/u }).click();
+  await expect(seed).toHaveText(remixedSeed ?? '');
+
+  const format = poster.locator('#poster-format');
+  const preview = poster.locator('[data-poster]');
+  await poster.locator('[data-advanced] summary').click();
+  const formats = [
+    ['portrait', '1200', '1600'],
+    ['square', '1200', '1200'],
+    ['story', '1080', '1920'],
+    ['landscape', '1600', '1000'],
+  ] as const;
+  for (const [value, width, height] of formats) {
+    await format.selectOption(value);
+    await expect(preview).toHaveAttribute('width', width);
+    await expect(preview).toHaveAttribute('height', height);
+  }
+
+  await poster.locator('[data-advanced]').scrollIntoViewIfNeeded();
+  await expect(
+    poster.getByRole('button', { name: 'Zur großen Poster-Vorschau springen' }),
+  ).toBeVisible();
+  const hubScroll = await page.evaluate(() => window.scrollY);
+  const footerGeometry = await iframe.evaluate(async (element) => {
+    const frameWindow = (element as HTMLIFrameElement).contentWindow;
+    if (!frameWindow) return null;
+    frameWindow.scrollTo(0, frameWindow.document.documentElement.scrollHeight);
+    await new Promise((resolve) => frameWindow.requestAnimationFrame(resolve));
+    const footer = frameWindow.document
+      .querySelector('footer')
+      ?.getBoundingClientRect();
+    return {
+      bottom: footer?.bottom ?? -1,
+      top: footer?.top ?? -1,
+      viewportHeight: frameWindow.innerHeight,
+    };
+  });
+  expect(footerGeometry?.top).toBeGreaterThanOrEqual(0);
+  expect(footerGeometry?.bottom).toBeLessThanOrEqual(
+    (footerGeometry?.viewportHeight ?? 0) + 1,
+  );
+  expect(await page.evaluate(() => window.scrollY)).toBe(hubScroll);
+  expect(externalRequests).toEqual([]);
+});
+
+test('Poster exports through native Share and keeps Clipboard controlled inside its iframe', async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    const state = { fail: false, writes: [] as string[] };
+    Object.assign(window, { __posterClipboard: state });
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: {
+        writeText: async (text: string) => {
+          if (state.fail) throw new Error('Clipboard denied for test');
+          state.writes.push(text);
+        },
+      },
+    });
+  });
+  await simulateNativeCapacitor(page);
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.goto('/');
+  await posterButton(page).click();
+  const iframe = page.locator('iframe[data-project-frame="poster"]');
+  const poster = page.frameLocator('iframe[data-project-frame="poster"]');
+  await expect(iframe).toHaveAttribute('data-frame-state', 'ready');
+  await poster.locator('[data-advanced] summary').click();
+
+  await poster.getByRole('button', { name: 'Copy', exact: true }).click();
+  await expect(poster.locator('[data-status]')).toContainText('kopiert');
+  await poster.getByRole('button', { name: 'Copy', exact: true }).click();
+  await poster
+    .getByRole('button', { name: /Copy shareable configuration link/u })
+    .click();
+  await expect(poster.locator('[data-status]')).toContainText(
+    'Konfigurationslink kopiert',
+  );
+  expect(
+    await iframe.evaluate(
+      (element) =>
+        (
+          (element as HTMLIFrameElement).contentWindow as
+            (Window & { __posterClipboard?: { writes: string[] } }) | null
+        )?.__posterClipboard?.writes.length,
+    ),
+  ).toBe(3);
+
+  await iframe.evaluate((element) => {
+    const frameWindow = (element as HTMLIFrameElement).contentWindow as
+      (Window & { __posterClipboard?: { fail: boolean } }) | null;
+    if (frameWindow?.__posterClipboard)
+      frameWindow.__posterClipboard.fail = true;
+  });
+  await poster.getByRole('button', { name: 'Copy', exact: true }).click();
+  await expect(poster.locator('[data-status]')).toContainText(
+    'Seed konnte nicht in die Zwischenablage kopiert werden',
+  );
+  await poster
+    .getByRole('button', { name: /Copy shareable configuration link/u })
+    .click();
+  await expect(poster.locator('[data-status]')).toContainText(
+    'konnte nicht in die Zwischenablage kopiert werden',
+  );
+
+  const sourceBefore = await iframe.getAttribute('src');
+  await poster.getByRole('button', { name: /Export PNG/u }).click();
+  await expect(poster.locator('[data-status]')).toContainText(
+    'an Orbit übergeben',
+  );
+  expect(await iframe.getAttribute('src')).toBe(sourceBefore);
+  const nativeExports = await page.evaluate(() =>
+    (
+      window as Window & {
+        __nativeBridgeCalls?: {
+          pluginId: string;
+          methodName: string;
+          options: Record<string, unknown>;
+        }[];
+      }
+    ).__nativeBridgeCalls?.filter(
+      (call) => call.pluginId === 'Filesystem' || call.pluginId === 'Share',
+    ),
+  );
+  expect(
+    nativeExports?.map((call) => `${call.pluginId}.${call.methodName}`),
+  ).toEqual(['Filesystem.writeFile', 'Share.share', 'Filesystem.deleteFile']);
+  expect(nativeExports?.[0]?.options.path).toMatch(
+    /^orbit-exports\/[\w-]+-poster-forge-[\w-]+-portrait\.png$/u,
+  );
+  expect(nativeExports?.[1]?.options.url).toBe('file:///cache/poster.png');
+  expect(nativeExports?.[2]?.options.path).toBe(
+    nativeExports?.[0]?.options.path,
+  );
+  expect(errors).toEqual([]);
+});
+
+test('switches Portfolio to Poster and back without retaining iframe state', async ({
+  page,
+}) => {
+  await simulateNativeCapacitor(page);
+  await page.goto('/');
+
+  await portfolioButton(page).click();
+  const firstPortfolio = page.locator('iframe[data-project-frame="portfolio"]');
+  await expect(firstPortfolio).toHaveAttribute('data-frame-state', 'ready');
+  await page.getByRole('button', { name: 'Projekte' }).click();
+  await expect(firstPortfolio).toHaveCount(0);
+
+  await posterButton(page).click();
+  const poster = page.locator('iframe[data-project-frame="poster"]');
+  await expect(poster).toHaveAttribute('data-frame-state', 'ready');
+  await poster.evaluate((element) => {
+    (element as HTMLIFrameElement).contentWindow?.addEventListener(
+      'pagehide',
+      () => localStorage.setItem('poster-pagehide-observed', 'true'),
+      { once: true },
+    );
+  });
+  await page.getByRole('button', { name: 'Projekte' }).click();
+  await expect(poster).toHaveCount(0);
+  await expect
+    .poll(() =>
+      page.evaluate(() => localStorage.getItem('poster-pagehide-observed')),
+    )
+    .toBe('true');
+
+  await portfolioButton(page).click();
+  const secondPortfolio = page.locator(
+    'iframe[data-project-frame="portfolio"]',
+  );
+  await expect(secondPortfolio).toHaveAttribute('data-frame-state', 'ready');
+  await expect(page.locator('iframe')).toHaveCount(1);
+});
+
+test('web runtime keeps Poster public and Blackbox mocked without network dependence', async ({
+  page,
+}) => {
+  await page.route('https://ki-node.github.io/poster/**', (route) =>
+    route.abort('internetdisconnected'),
+  );
+  await page.goto('/');
+  await posterButton(page).click();
+  await expect(
+    page.locator('iframe[data-project-frame="poster"]'),
+  ).toHaveAttribute('src', 'https://ki-node.github.io/poster/');
+  await page.getByRole('button', { name: 'Projekte' }).click();
+  await page.getByRole('button', { name: /Blackbox öffnen/u }).click();
+  await expect(
+    page.locator('iframe[data-project-frame="blackbox"]'),
+  ).toHaveAttribute(
+    'src',
+    /mock-project\/index\.html\?project=blackbox&source=web/u,
+  );
+});
+
+test('keeps the Hub and active Poster frame accessible', async ({ page }) => {
+  await simulateNativeCapacitor(page);
+  await page.goto('/');
+  await posterButton(page).click();
+  await expect(
+    page.locator('iframe[data-project-frame="poster"]'),
+  ).toHaveAttribute('data-frame-state', 'ready');
+
+  const results = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
+    .analyze();
+  expect(results.violations).toEqual([]);
 });

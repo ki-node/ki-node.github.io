@@ -44,8 +44,8 @@ jobs:
       - name: Run static, unit and signing checks
         run: npm run check
 
-      - name: Install WebKit
-        run: npx playwright install --with-deps webkit
+      - name: Install Chromium and WebKit
+        run: npx playwright install --with-deps chromium webkit
 
       - name: Test native and web project integration
         run: npm run test:e2e
@@ -53,13 +53,13 @@ jobs:
       - name: Build web application
         run: npm run build
 
-      - name: Verify web build contains unchanged Portfolio files
+      - name: Verify web build contains unchanged embedded project files
         run: npm run check:project-copy
 
       - name: Synchronize iOS project
         run: npx cap sync ios
 
-      - name: Verify iOS bundle contains unchanged Portfolio files
+      - name: Verify iOS bundle contains unchanged embedded project files
         run: npm run check:ios-project-copy
 
       - name: Verify generated iOS files are current

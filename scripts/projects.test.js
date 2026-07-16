@@ -9,6 +9,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { checkProjects } from './check-projects.mjs';
 import {
   createProjectProvenance,
+  expectedSourceProvenance,
   loadProjectLock,
   validateProjectLock,
 } from './project-lock.mjs';
@@ -21,6 +22,14 @@ const lockedProject = {
   buildCommand: 'npm run build:embedded',
   buildOutput: 'dist-embedded',
   targetPath: 'public/projects/portfolio',
+};
+const lockedPoster = {
+  id: 'poster',
+  repository: 'ki-node/poster',
+  commit: '755de154b6426c912d7af0caab9e45c75aa4fc7b',
+  buildCommand: 'npm run build:embedded',
+  buildOutput: 'dist-embedded',
+  targetPath: 'public/projects/poster',
 };
 const temporaryDirectories = [];
 
@@ -41,17 +50,20 @@ afterEach(async () => {
 });
 
 describe('project lock', () => {
-  it('pins the checked-in Portfolio build to the requested source commit', async () => {
+  it('pins the checked-in Portfolio and Poster builds to exact source commits', async () => {
     const repositoryRoot = path.resolve(import.meta.dirname, '..');
     const lock = await loadProjectLock(repositoryRoot);
 
-    expect(lock.projects).toEqual([lockedProject]);
-    await expect(checkProjects(repositoryRoot)).resolves.toBe(1);
+    expect(lock.projects).toEqual([lockedProject, lockedPoster]);
+    await expect(checkProjects(repositoryRoot)).resolves.toBe(2);
   });
 
-  it('accepts the pinned Portfolio commit and rejects abbreviated SHAs', () => {
+  it('accepts both pinned commits and rejects abbreviated SHAs', () => {
     expect(
-      validateProjectLock({ version: 1, projects: [lockedProject] }),
+      validateProjectLock({
+        version: 1,
+        projects: [lockedProject, lockedPoster],
+      }),
     ).toEqual([]);
     expect(
       validateProjectLock({
@@ -59,6 +71,18 @@ describe('project lock', () => {
         projects: [{ ...lockedProject, commit: 'f34ca2d9' }],
       }),
     ).toContain('lock.projects[0].commit: expected a full 40-character SHA');
+  });
+
+  it('validates Poster build provenance before Hub normalization', () => {
+    expect(expectedSourceProvenance(lockedProject)).toBeNull();
+    expect(expectedSourceProvenance(lockedPoster)).toEqual({
+      formatVersion: 1,
+      projectId: 'poster',
+      buildContext: 'embedded',
+      repository: 'ki-node/poster',
+      commit: '755de154b6426c912d7af0caab9e45c75aa4fc7b',
+      buildCommand: 'npm run build:embedded',
+    });
   });
 
   it('rejects commands and target paths outside the allowlist', () => {

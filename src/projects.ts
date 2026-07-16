@@ -1,6 +1,11 @@
 export const PROJECT_CAPABILITIES = ['haptics'] as const;
+export const PROJECT_FRAME_PERMISSIONS = [
+  'downloads',
+  'clipboard-write',
+] as const;
 
 export type ProjectCapability = (typeof PROJECT_CAPABILITIES)[number];
+export type ProjectFramePermission = (typeof PROJECT_FRAME_PERMISSIONS)[number];
 export type ProjectId = 'portfolio' | 'poster' | 'blackbox';
 export type ProjectStatus = 'preview' | 'active' | 'disabled';
 
@@ -11,6 +16,7 @@ export interface HubProject {
   readonly embeddedUrl: string;
   readonly webUrl: string;
   readonly capabilities: readonly ProjectCapability[];
+  readonly framePermissions: readonly ProjectFramePermission[];
   readonly status: ProjectStatus;
 }
 
@@ -30,6 +36,7 @@ export const PROJECT_CATALOG = [
     embeddedUrl: './projects/portfolio/index.html',
     webUrl: 'https://ki-node.github.io/portfolio/',
     capabilities: ['haptics'],
+    framePermissions: [],
     status: 'active',
   },
   {
@@ -37,10 +44,11 @@ export const PROJECT_CATALOG = [
     title: 'Poster',
     description:
       'Ein generatives Designinstrument für reproduzierbare visuelle Kompositionen.',
-    embeddedUrl: mockUrl('poster', 'embedded'),
-    webUrl: mockUrl('poster', 'web'),
+    embeddedUrl: './projects/poster/index.html',
+    webUrl: 'https://ki-node.github.io/poster/',
     capabilities: ['haptics'],
-    status: 'preview',
+    framePermissions: ['downloads', 'clipboard-write'],
+    status: 'active',
   },
   {
     id: 'blackbox',
@@ -50,6 +58,7 @@ export const PROJECT_CATALOG = [
     embeddedUrl: mockUrl('blackbox', 'embedded'),
     webUrl: mockUrl('blackbox', 'web'),
     capabilities: ['haptics'],
+    framePermissions: [],
     status: 'preview',
   },
 ] as const satisfies readonly HubProject[];
@@ -95,6 +104,17 @@ export function validateProjectCatalog(
         errors.push(`${path}: duplicate capability "${capability}"`);
       }
       capabilities.add(capability);
+    });
+
+    const framePermissions = new Set<ProjectFramePermission>();
+    project.framePermissions.forEach((permission) => {
+      if (!PROJECT_FRAME_PERMISSIONS.includes(permission)) {
+        errors.push(`${path}: unsupported frame permission "${permission}"`);
+      }
+      if (framePermissions.has(permission)) {
+        errors.push(`${path}: duplicate frame permission "${permission}"`);
+      }
+      framePermissions.add(permission);
     });
   });
 

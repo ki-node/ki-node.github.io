@@ -16,16 +16,18 @@ oder Capacitor und löst ausschließlich dort die passende URL auf:
 - Die native App lädt lokale Embedded-Builds aus dem App-Bundle.
 - Der Web-Hub lädt die öffentlichen GitHub-Pages-Versionen.
 
-Portfolio ist als erstes echtes Projekt integriert. Der native Katalogeintrag zeigt auf den
-eingecheckten Offline-Build unter `public/projects/portfolio/`, während der Web-Eintrag weiterhin
-`https://ki-node.github.io/portfolio/` verwendet. Poster und Blackbox verweisen unverändert auf
-das lokale Mock-Projekt.
+Portfolio und Poster sind als echte Projekte integriert. Ihre nativen Katalogeinträge zeigen auf
+die eingecheckten Offline-Builds unter `public/projects/<id>/`, während die Web-Einträge weiterhin
+`https://ki-node.github.io/portfolio/` und `https://ki-node.github.io/poster/` verwenden. Blackbox
+verweist unverändert auf das lokale Mock-Projekt.
 
 ## Versionsfixierung und Lieferkette
 
 `projects.lock.json` beschreibt eingebettete Projekte mit Repository, vollständigem Commit-SHA,
-erlaubtem Build-Befehl, Build-Ausgabe und lokalem Zielpfad. Der Portfolio-Build stammt exakt aus
-`ki-node/portfolio@07c6b7eb09bd3d0577d49df657fed2d58097f018`.
+erlaubtem Build-Befehl, Build-Ausgabe und lokalem Zielpfad. Die Builds stammen exakt aus:
+
+- `ki-node/portfolio@07c6b7eb09bd3d0577d49df657fed2d58097f018`
+- `ki-node/poster@755de154b6426c912d7af0caab9e45c75aa4fc7b`
 
 `npm run sync:projects` checkt diesen Commit in einem Betriebssystem-Temp-Verzeichnis aus, führt
 im isolierten Checkout `npm ci` und `npm run build:embedded` aus und ersetzt das Hub-Artefakt erst
@@ -34,11 +36,12 @@ Shell-Befehlen zusammengesetzt. Das Skript entfernt alte Zieldateien sowie tempo
 schreibt eine deterministische `ki-node-project.json` als Provenienz in den Build.
 
 Die kompilierten Dateien sind ausnahmsweise eingecheckt, weil sie ein versionsfixierter Bestandteil
-des nativen App-Bundles sind. Vite kopiert sie unverändert nach `dist/projects/portfolio/`, danach
-übernimmt Capacitor sie in `ios/App/App/public/projects/portfolio/`. Der App-Start hängt weder vom
-GitHub-Netzwerk noch vom aktuellen Stand des Portfolio-Repositories ab. Updates erfolgen nur über
-eine bewusste Änderung des vollständigen SHA plus erneute Synchronisation; CI baut die Lock-Version
-nach und verlangt einen diff-freien Arbeitsbaum.
+des nativen App-Bundles sind. Vite kopiert sie unverändert nach `dist/projects/<id>/`, danach
+übernimmt Capacitor sie in `ios/App/App/public/projects/<id>/`. Der App-Start hängt weder vom
+GitHub-Netzwerk noch vom aktuellen Stand der Projekt-Repositories ab. Projekte können gemeinsam
+oder gezielt per ID synchronisiert werden. Updates erfolgen nur über eine bewusste Änderung des
+vollständigen SHA plus erneute Synchronisation; CI baut alle Lock-Versionen nach und verlangt einen
+diff-freien Arbeitsbaum.
 
 ## Isolation und native Fähigkeiten
 
@@ -53,8 +56,21 @@ Protokollversion und Nachrichtentyp. Der Hub akzeptiert nur Nachrichten des aktu
 Portfolio-iframe, validiert das Schema und übergibt erlaubte Links im nativen Kontext an den
 offiziellen Capacitor-App-Launcher. Fremde Fenster, Projekte, Versionen, Nachrichtentypen und
 Schemes werden verworfen; beim Entfernen des iframe wird auch der Listener entfernt. Die Sandbox
-erhält keine allgemeine Top-Navigation. Native Haptik für die Hub-Oberfläche bleibt zentral;
-Clipboard, Share und Dateien sind weiterhin nicht implementiert.
+erhält keine allgemeine Top-Navigation. Native Haptik für die Hub-Oberfläche bleibt zentral.
+
+Poster besitzt eine getrennte Export-Bridge auf Kanal `orbit-project-bridge`, Version 1. Ein Export
+enthält Projektkennung, Request-ID, bereinigbaren Dateinamen, MIME-Typ `image/png`, Bytezahl und
+einen strukturiert geklonten `ArrayBuffer`. Der Hub akzeptiert nur das aktuell aktive Poster-iframe, prüft
+PNG-Signatur und die dokumentierte Obergrenze von 48 MiB und verhindert Request-Replays. Er wandelt
+die Binärdaten erst an der nativen Filesystem-Grenze in Base64 um, schreibt sie unter einem
+hostgenerierten Cache-Pfad, öffnet das offizielle Share-Sheet und löscht die temporäre Datei in
+jedem Abschlussfall.
+
+`allow-downloads` bleibt nur im Web-Hub für den öffentlichen Browser-Download aktiv; im nativen
+iframe wird nie zur Blob-Datei navigiert. Die Permissions Policy `clipboard-write` bleibt
+projektspezifisch bei Poster. Clipboard ist absichtlich nicht Teil der Export-Bridge und verwendet
+weiterhin seinen kontrollierten Browser-Fallback. Portfolio und Blackbox erhalten keine dieser
+zusätzlichen Rechte.
 
 ## Launchscreen und WKWebView-Kaltstart
 
@@ -66,10 +82,11 @@ einer 15-Sekunden-Obergrenze aktiv; damit blockiert ein früher JavaScriptfehler
 nicht unbegrenzt. Diese Maßnahme verbessert die visuelle Kontinuität, behauptet aber keine
 Beschleunigung des zugrunde liegenden WKWebView-Kaltstarts.
 
-Der fünfte physische Test bestätigte Layout, Touch-Reticle, Menü-Scroll-Lock, Link-Bridge,
-Offline-Betrieb und Kaltstartdarstellung erfolgreich. Der Lock-SHA verweist auf den endgültigen
-Squash-Merge-Commit des Portfolio-Folge-PRs. Hub-PR #4 bleibt nur noch wegen des nicht festgelegten
-Produktnamens und des nicht freigegebenen App-Icons Draft.
+Der fünfte physische Portfolio-Test bestätigte Layout, Touch-Reticle, Menü-Scroll-Lock,
+Link-Bridge, Offline-Betrieb und Kaltstartdarstellung erfolgreich. Der zweite physische
+Poster-Test bestätigte die pixelgleiche Mini-Vorschau, den nativen PNG-Export, Clipboard und den
+stabilen Wechsel zwischen Poster und Portfolio. Beide Lock-SHAs verweisen auf die endgültigen
+Squash-Merge-Commits der Projekt-Repositories.
 
 ## Warum die native App keine Projekte live von GitHub Pages lädt
 

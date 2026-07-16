@@ -27,7 +27,7 @@ verweist unverändert auf das lokale Mock-Projekt.
 erlaubtem Build-Befehl, Build-Ausgabe und lokalem Zielpfad. Die Builds stammen exakt aus:
 
 - `ki-node/portfolio@07c6b7eb09bd3d0577d49df657fed2d58097f018`
-- `ki-node/poster@7950f07528334ee674c1e8fe4aa2133ae2338819`
+- `ki-node/poster@755de154b6426c912d7af0caab9e45c75aa4fc7b`
 
 `npm run sync:projects` checkt diesen Commit in einem Betriebssystem-Temp-Verzeichnis aus, führt
 im isolierten Checkout `npm ci` und `npm run build:embedded` aus und ersetzt das Hub-Artefakt erst
@@ -82,10 +82,11 @@ einer 15-Sekunden-Obergrenze aktiv; damit blockiert ein früher JavaScriptfehler
 nicht unbegrenzt. Diese Maßnahme verbessert die visuelle Kontinuität, behauptet aber keine
 Beschleunigung des zugrunde liegenden WKWebView-Kaltstarts.
 
-Der fünfte physische Test bestätigte Layout, Touch-Reticle, Menü-Scroll-Lock, Link-Bridge,
-Offline-Betrieb und Kaltstartdarstellung erfolgreich. Der Lock-SHA verweist auf den endgültigen
-Squash-Merge-Commit des Portfolio-Folge-PRs. Die Poster-Integration benötigt nach den automatischen
-Prüfungen einen eigenen physischen Test im Orbit-iframe auf dem iPhone.
+Der fünfte physische Portfolio-Test bestätigte Layout, Touch-Reticle, Menü-Scroll-Lock,
+Link-Bridge, Offline-Betrieb und Kaltstartdarstellung erfolgreich. Der zweite physische
+Poster-Test bestätigte die pixelgleiche Mini-Vorschau, den nativen PNG-Export, Clipboard und den
+stabilen Wechsel zwischen Poster und Portfolio. Beide Lock-SHAs verweisen auf die endgültigen
+Squash-Merge-Commits der Projekt-Repositories.
 
 ## Warum die native App keine Projekte live von GitHub Pages lädt
 

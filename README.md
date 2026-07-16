@@ -58,7 +58,7 @@ Versionsfixierung für lokale Projekt-Builds:
 ```text
 Portfolio: ki-node/portfolio@07c6b7eb09bd3d0577d49df657fed2d58097f018
            npm run build:embedded → public/projects/portfolio/
-Poster:    ki-node/poster@7950f07528334ee674c1e8fe4aa2133ae2338819
+Poster:    ki-node/poster@755de154b6426c912d7af0caab9e45c75aa4fc7b
            npm run build:embedded → public/projects/poster/
 ```
 
@@ -94,11 +94,9 @@ Update:
 CI erzeugt den Build erneut und schlägt fehl, sobald Lock-Datei, Provenienz oder
 eingechecktes Artefakt voneinander abweichen.
 
-Der Portfolio-SHA ist ein endgültiger Squash-Merge-Commit. Poster ist für den gemeinsamen
-Gerätetest bewusst auf den vollständigen Feature-Commit
-`7950f07528334ee674c1e8fe4aa2133ae2338819` festgeschrieben. Nach erfolgreichem Test und
-Squash-Merge des Poster-PRs wird Orbit abschließend auf dessen Merge-Commit umgepinnt. Weitere
-Updates erfolgen ausschließlich über eine bewusste Lock-Änderung und erneute Synchronisation.
+Portfolio und Poster sind jeweils auf ihren endgültigen Squash-Merge-Commit festgeschrieben. Der
+abschließende Poster-Pin lautet `755de154b6426c912d7af0caab9e45c75aa4fc7b`. Weitere Updates
+erfolgen ausschließlich über eine bewusste Lock-Änderung und erneute Synchronisation.
 
 ## Native Projekt-Bridge und Kaltstart
 

@@ -1,11 +1,48 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  BLACKBOX_BRIDGE,
+  parseBlackboxHapticMessage,
   parsePortfolioLinkMessage,
   parsePosterFileExportMessage,
   PORTFOLIO_BRIDGE,
   POSTER_BRIDGE,
 } from './bridge-protocol';
+
+describe('Blackbox haptic bridge protocol', () => {
+  const message = {
+    channel: BLACKBOX_BRIDGE.channel,
+    type: BLACKBOX_BRIDGE.type,
+    protocolVersion: BLACKBOX_BRIDGE.protocolVersion,
+    project: BLACKBOX_BRIDGE.project,
+    event: 'light',
+  } as const;
+
+  it.each(BLACKBOX_BRIDGE.events)('accepts the semantic %s event', (event) => {
+    expect(parseBlackboxHapticMessage({ ...message, event })).toEqual({
+      ...message,
+      event,
+    });
+  });
+
+  it('rejects foreign, malformed and incomplete envelopes', () => {
+    for (const value of [
+      { ...message, channel: 'orbit-project-bridge' },
+      { ...message, type: 'file-export' },
+      { ...message, protocolVersion: 2 },
+      { ...message, project: 'poster' },
+      { ...message, event: 'custom' },
+      { ...message, event: 1 },
+      { ...message, protocolVersion: '1' },
+      { ...message, nativeDuration: 100 },
+      { channel: message.channel },
+      null,
+      [],
+    ]) {
+      expect(parseBlackboxHapticMessage(value)).toBeUndefined();
+    }
+  });
+});
 
 describe('Portfolio bridge protocol', () => {
   const message = {

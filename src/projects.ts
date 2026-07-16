@@ -20,9 +20,6 @@ export interface HubProject {
   readonly status: ProjectStatus;
 }
 
-const mockUrl = (project: ProjectId, source: 'embedded' | 'web') =>
-  `./mock-project/index.html?project=${project}&source=${source}`;
-
 /**
  * Central project catalog. Native and web sources are resolved only by the
  * runtime boundary; UI components consume the selected URL without branching.
@@ -55,11 +52,11 @@ export const PROJECT_CATALOG = [
     title: 'Blackbox',
     description:
       'Eine kompakte, atmosphärische Rätselmaschine mit lokalem Fortschritt.',
-    embeddedUrl: mockUrl('blackbox', 'embedded'),
-    webUrl: mockUrl('blackbox', 'web'),
+    embeddedUrl: './projects/blackbox/index.html',
+    webUrl: 'https://ki-node.github.io/blackbox/',
     capabilities: ['haptics'],
     framePermissions: [],
-    status: 'preview',
+    status: 'active',
   },
 ] as const satisfies readonly HubProject[];
 

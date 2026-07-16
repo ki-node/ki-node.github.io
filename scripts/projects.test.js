@@ -31,6 +31,14 @@ const lockedPoster = {
   buildOutput: 'dist-embedded',
   targetPath: 'public/projects/poster',
 };
+const lockedBlackbox = {
+  id: 'blackbox',
+  repository: 'ki-node/blackbox',
+  commit: '50c7dfbb79704e1d422bc739d49cbb28cfd21640',
+  buildCommand: 'npm run build:embedded',
+  buildOutput: 'dist-embedded',
+  targetPath: 'public/projects/blackbox',
+};
 const temporaryDirectories = [];
 
 const createTemporaryDirectory = async () => {
@@ -50,19 +58,23 @@ afterEach(async () => {
 });
 
 describe('project lock', () => {
-  it('pins the checked-in Portfolio and Poster builds to exact source commits', async () => {
+  it('pins Portfolio, Poster and Blackbox in catalog order', async () => {
     const repositoryRoot = path.resolve(import.meta.dirname, '..');
     const lock = await loadProjectLock(repositoryRoot);
 
-    expect(lock.projects).toEqual([lockedProject, lockedPoster]);
-    await expect(checkProjects(repositoryRoot)).resolves.toBe(2);
+    expect(lock.projects).toEqual([
+      lockedProject,
+      lockedPoster,
+      lockedBlackbox,
+    ]);
+    await expect(checkProjects(repositoryRoot)).resolves.toBe(3);
   });
 
   it('accepts both pinned commits and rejects abbreviated SHAs', () => {
     expect(
       validateProjectLock({
         version: 1,
-        projects: [lockedProject, lockedPoster],
+        projects: [lockedProject, lockedPoster, lockedBlackbox],
       }),
     ).toEqual([]);
     expect(
@@ -83,6 +95,20 @@ describe('project lock', () => {
       commit: '755de154b6426c912d7af0caab9e45c75aa4fc7b',
       buildCommand: 'npm run build:embedded',
     });
+  });
+
+  it('preserves Blackbox source provenance in both checked-in copies', () => {
+    const provenance = {
+      project: 'blackbox',
+      repository: 'ki-node/blackbox',
+      commit: '50c7dfbb79704e1d422bc739d49cbb28cfd21640',
+      buildCommand: 'npm run build:embedded',
+      context: 'embedded',
+      formatVersion: 1,
+    };
+
+    expect(expectedSourceProvenance(lockedBlackbox)).toEqual(provenance);
+    expect(createProjectProvenance(lockedBlackbox)).toEqual(provenance);
   });
 
   it('rejects commands and target paths outside the allowlist', () => {

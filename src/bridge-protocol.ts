@@ -16,6 +16,24 @@ export const POSTER_BRIDGE = {
   maxExportBytes: 48 * 1024 * 1024,
 } as const;
 
+export const BLACKBOX_BRIDGE = {
+  channel: 'ki-node.project-bridge',
+  type: 'haptic',
+  protocolVersion: 1,
+  project: 'blackbox',
+  events: ['light', 'medium', 'heavy', 'success', 'warning', 'error'],
+} as const;
+
+export type BlackboxHapticEvent = (typeof BLACKBOX_BRIDGE.events)[number];
+
+export interface BlackboxHapticMessage {
+  readonly channel: typeof BLACKBOX_BRIDGE.channel;
+  readonly type: typeof BLACKBOX_BRIDGE.type;
+  readonly protocolVersion: typeof BLACKBOX_BRIDGE.protocolVersion;
+  readonly project: typeof BLACKBOX_BRIDGE.project;
+  readonly event: BlackboxHapticEvent;
+}
+
 export interface PortfolioExternalLinkMessage {
   readonly projectId: typeof PORTFOLIO_BRIDGE.projectId;
   readonly protocolVersion: typeof PORTFOLIO_BRIDGE.protocolVersion;
@@ -25,6 +43,18 @@ export interface PortfolioExternalLinkMessage {
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
+
+const hasExactKeys = (
+  value: Record<string, unknown>,
+  keys: readonly string[],
+): boolean => {
+  const actual = Object.keys(value).sort();
+  const expected = [...keys].sort();
+  return (
+    actual.length === expected.length &&
+    actual.every((key, index) => key === expected[index])
+  );
+};
 
 export interface PosterFileExportMessage {
   readonly channel: typeof POSTER_BRIDGE.channel;
@@ -39,6 +69,38 @@ export interface PosterFileExportMessage {
 }
 
 export type PosterExportResultStatus = 'shared' | 'cancelled' | 'error';
+
+/** Accepts only Blackbox's fixed, parameter-free semantic haptic envelope. */
+export function parseBlackboxHapticMessage(
+  value: unknown,
+): BlackboxHapticMessage | undefined {
+  if (
+    !isRecord(value) ||
+    !hasExactKeys(value, [
+      'channel',
+      'type',
+      'protocolVersion',
+      'project',
+      'event',
+    ]) ||
+    value.channel !== BLACKBOX_BRIDGE.channel ||
+    value.type !== BLACKBOX_BRIDGE.type ||
+    value.protocolVersion !== BLACKBOX_BRIDGE.protocolVersion ||
+    value.project !== BLACKBOX_BRIDGE.project ||
+    typeof value.event !== 'string' ||
+    !BLACKBOX_BRIDGE.events.some((event) => event === value.event)
+  ) {
+    return undefined;
+  }
+
+  return {
+    channel: BLACKBOX_BRIDGE.channel,
+    type: BLACKBOX_BRIDGE.type,
+    protocolVersion: BLACKBOX_BRIDGE.protocolVersion,
+    project: BLACKBOX_BRIDGE.project,
+    event: value.event as BlackboxHapticEvent,
+  };
+}
 
 const hasPngSignature = (data: ArrayBuffer): boolean => {
   if (data.byteLength < 8) return false;

@@ -7,9 +7,9 @@ denselben Build lokal in die iOS-App ein; es wird keine externe Server-URL verwe
 `ki-node` bleibt der technische Organisations-, Repository- und Hosting-Kontext. Der sichtbare
 Produktname im Web und auf iOS ist ausschließlich Orbit.
 
-Der aktuelle Projektkatalog enthält Portfolio, Poster und Blackbox. Portfolio und Poster sind in
-der nativen App als versionsfixierte Offline-Builds integriert; Blackbox verwendet weiterhin sein
-lokales Mock-Projekt. Die Architekturentscheidung ist unter
+Der aktuelle Projektkatalog enthält Portfolio, Poster und Blackbox. Alle drei Projekte sind in
+der nativen App als versionsfixierte Offline-Builds integriert und auf ihre endgültigen
+Squash-Merge-Commits festgeschrieben. Die Architekturentscheidung ist unter
 [`docs/architecture.md`](docs/architecture.md) dokumentiert.
 
 ## Voraussetzungen
@@ -60,6 +60,8 @@ Portfolio: ki-node/portfolio@07c6b7eb09bd3d0577d49df657fed2d58097f018
            npm run build:embedded → public/projects/portfolio/
 Poster:    ki-node/poster@755de154b6426c912d7af0caab9e45c75aa4fc7b
            npm run build:embedded → public/projects/poster/
+Blackbox:  ki-node/blackbox@50c7dfbb79704e1d422bc739d49cbb28cfd21640
+           npm run build:embedded → public/projects/blackbox/
 ```
 
 `npm run sync:projects` liest ausschließlich diese Lock-Datei, legt je Projekt außerhalb des
@@ -69,16 +71,16 @@ nach erfolgreicher Prüfung ersetzt das Skript den jeweiligen Zielordner vollst�
 Temporäre Quellen und `node_modules` werden anschließend entfernt und nie in den Hub
 übernommen.
 
-Portfolio und Poster können auch unabhängig synchronisiert werden, etwa mit
+Die Projekte können auch unabhängig synchronisiert werden, etwa mit
 `npm run sync:projects -- poster`. Der erzeugte Inhalt unter `public/projects/<id>/` ist bewusst
 eingecheckt. Er gehört zum nativen App-Bundle, muss nach der Installation ohne Netzwerk verfügbar
 sein und wird von Vite unverändert nach `dist/projects/<id>/` kopiert. Eine zusätzliche
 `ki-node-project.json` dokumentiert Repository, Commit und Build-Befehl direkt am Artefakt.
 
-Im nativen Capacitor-Kontext löst die zentrale Runtime Portfolio und Poster als
+Im nativen Capacitor-Kontext löst die zentrale Runtime alle drei Projekte als
 `./projects/<id>/index.html` auf. Der Web-Hub verwendet dagegen weiterhin
-`https://ki-node.github.io/portfolio/` beziehungsweise `https://ki-node.github.io/poster/`.
-Blackbox bleibt in beiden Laufzeiten beim bisherigen Mock-Projekt.
+`https://ki-node.github.io/portfolio/`, `https://ki-node.github.io/poster/` beziehungsweise
+`https://ki-node.github.io/blackbox/`.
 
 ### Eingebettetes Projekt aktualisieren
 
@@ -94,9 +96,12 @@ Update:
 CI erzeugt den Build erneut und schlägt fehl, sobald Lock-Datei, Provenienz oder
 eingechecktes Artefakt voneinander abweichen.
 
-Portfolio und Poster sind jeweils auf ihren endgültigen Squash-Merge-Commit festgeschrieben. Der
-abschließende Poster-Pin lautet `755de154b6426c912d7af0caab9e45c75aa4fc7b`. Weitere Updates
-erfolgen ausschließlich über eine bewusste Lock-Änderung und erneute Synchronisation.
+Portfolio, Poster und Blackbox sind jeweils auf ihren endgültigen Squash-Merge-Commit
+festgeschrieben. Blackbox verwendet
+`50c7dfbb79704e1d422bc739d49cbb28cfd21640` aus dem gemergten
+[Blackbox-PR #17](https://github.com/ki-node/blackbox/pull/17). Der zuvor gepinnte Feature-Stand
+wurde auf einem iPhone 17 Pro mit iOS 26.5.2 vollständig erfolgreich getestet; der finale
+Squash-Commit besitzt denselben Quellbaum und erzeugt abgesehen vom Provenienz-SHA denselben Build.
 
 ## Native Projekt-Bridge und Kaltstart
 
@@ -112,6 +117,27 @@ Poster übergibt im nativen Embedded-Kontext ausschließlich validierte PNG-Date
 1, MIME-Typ `image/png`, eine korrekte PNG-Signatur und höchstens 48 MiB. Der Hub bereinigt den
 Dateinamen, schreibt eine hostgenerierte temporäre Cache-Datei, öffnet genau einmal das iOS-
 Share-Sheet und entfernt die Datei anschließend. Abbruch ist ein kontrolliertes Ergebnis.
+
+Blackbox sendet semantische Haptik über einen getrennten Kanal. Orbit akzeptiert ausschließlich
+Nachrichten des aktuell aktiven Blackbox-iframe in diesem Format:
+
+```json
+{
+    "channel": "ki-node.project-bridge",
+    "type": "haptic",
+    "protocolVersion": 1,
+    "project": "blackbox",
+    "event": "light | medium | heavy | success | warning | error"
+}
+```
+
+`light`, `medium` und `heavy` werden auf die offiziellen Capacitor-Impact-Typen abgebildet;
+`success`, `warning` und `error` verwenden die entsprechenden Notification-Typen. Fremde oder
+alte iframe-Quellen, zusätzliche Parameter und ungültige Datentypen werden verworfen. Beim Öffnen
+oder Laden entsteht keine Blackbox-Haptik, und Fehler des nativen Plugins bleiben sichere No-ops.
+Blackbox erhält weder Downloads, Clipboard noch andere zusätzliche iframe-Berechtigungen. Der
+Spielstand bleibt ausschließlich im Projekt unter `black-box-progress-v2`; Orbit liest oder
+löscht ihn nicht.
 
 Im Web-Hub bleibt `allow-downloads` projektspezifisch für Posters normalen Browser-Download aktiv.
 Der native Poster-iframe benötigt dieses Recht nicht mehr und kann deshalb nicht zur Blob-Grafik

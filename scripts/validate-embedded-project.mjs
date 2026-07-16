@@ -213,7 +213,7 @@ export async function validateEmbeddedProject(outputDirectory) {
 
         if (
             extension !== '.html' &&
-            /(^|["'`(=:\s])\/(?:portfolio|poster)\//u.test(content)
+            /(^|["'`(=:\s])\/(?:portfolio|poster|blackbox)\//u.test(content)
         ) {
             throw new Error(
                 `Absolute public project dependency in ${path.relative(root, filename)}.`,

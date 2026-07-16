@@ -185,6 +185,12 @@ const syncProject = async (project, temporaryRoot) => {
 
     const target = path.resolve(repositoryRoot, project.targetPath);
     await replaceDirectory(outputDirectory, target);
+    const iosTarget = path.resolve(
+        repositoryRoot,
+        'ios/App/App/public/projects',
+        project.id,
+    );
+    await replaceDirectory(target, iosTarget);
 
     const provenance = JSON.parse(
         await readFile(path.join(target, 'ki-node-project.json'), 'utf8'),
@@ -195,6 +201,7 @@ const syncProject = async (project, temporaryRoot) => {
         );
     }
     console.log(`Updated ${path.relative(repositoryRoot, target)}.`);
+    console.log(`Updated ${path.relative(repositoryRoot, iosTarget)}.`);
 };
 
 let temporaryRoot;

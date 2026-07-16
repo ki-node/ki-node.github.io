@@ -10,6 +10,7 @@ import {
   createPosterExportResultMessage,
   createPosterHostReadyMessage,
   isPosterProjectReadyMessage,
+  parseBlackboxHapticMessage,
   parsePortfolioLinkMessage,
   parsePosterFileExportMessage,
 } from './bridge-protocol';
@@ -164,7 +165,7 @@ export class HubController {
 
     this.closeButton.focus({ preventScroll: true });
     this.announcer.textContent = `${project.title} geöffnet.`;
-    if (trigger) void this.runtime.triggerOpenFeedback();
+    if (trigger) void this.runtime.triggerOpenFeedback(project);
   }
 
   public closeProject(historyMode: 'auto' | 'none' = 'auto'): void {
@@ -324,6 +325,16 @@ export class HubController {
       if (project.id === 'portfolio') {
         const message = parsePortfolioLinkMessage(event.data);
         if (message) void this.runtime.openExternalUrl(message.url);
+        return;
+      }
+
+      if (project.id === 'blackbox') {
+        const message = parseBlackboxHapticMessage(event.data);
+        if (message) {
+          void this.runtime
+            .triggerProjectHaptic(message.event)
+            .catch(() => false);
+        }
         return;
       }
 

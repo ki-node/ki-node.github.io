@@ -27,7 +27,7 @@ verweist unverändert auf das lokale Mock-Projekt.
 erlaubtem Build-Befehl, Build-Ausgabe und lokalem Zielpfad. Die Builds stammen exakt aus:
 
 - `ki-node/portfolio@07c6b7eb09bd3d0577d49df657fed2d58097f018`
-- `ki-node/poster@db64fa45ff573119c49bf2641de07c09c23ab734`
+- `ki-node/poster@7950f07528334ee674c1e8fe4aa2133ae2338819`
 
 `npm run sync:projects` checkt diesen Commit in einem Betriebssystem-Temp-Verzeichnis aus, führt
 im isolierten Checkout `npm ci` und `npm run build:embedded` aus und ersetzt das Hub-Artefakt erst

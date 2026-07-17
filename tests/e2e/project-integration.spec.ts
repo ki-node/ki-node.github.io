@@ -901,9 +901,16 @@ test('shows accessible system information from the lock file at constrained view
     await page.emulateMedia({
       reducedMotion: scenario.reducedMotion ? 'reduce' : 'no-preference',
     });
-    await page.evaluate(() =>
-      window.scrollTo(0, document.documentElement.scrollHeight),
-    );
+    await page.evaluate(() => {
+      const root = document.documentElement;
+      const previousScrollBehavior = root.style.scrollBehavior;
+      root.style.scrollBehavior = 'auto';
+      window.scrollTo(0, root.scrollHeight);
+      root.style.scrollBehavior = previousScrollBehavior;
+    });
+    await expect
+      .poll(() => page.evaluate(() => window.scrollY))
+      .toBeGreaterThan(0);
     const initialScroll = await page.evaluate(() => ({
       left: window.scrollX,
       top: window.scrollY,

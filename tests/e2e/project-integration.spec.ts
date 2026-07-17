@@ -889,6 +889,7 @@ test('offers a fresh retry and a complete catalog return from the error state', 
 
 test('shows accessible system information from the lock file at constrained viewports', async ({
   page,
+  browserName,
 }) => {
   await page.goto('/');
   for (const scenario of [
@@ -947,8 +948,11 @@ test('shows accessible system information from the lock file at constrained view
       5,
     );
 
-    await page.mouse.move(2, 2);
-    await page.mouse.wheel(0, -400);
+    if (browserName === 'webkit') await page.keyboard.press('PageUp');
+    else {
+      await page.mouse.move(2, 2);
+      await page.mouse.wheel(0, -400);
+    }
     await expect
       .poll(() =>
         page.evaluate(() => ({
@@ -975,14 +979,24 @@ test('shows accessible system information from the lock file at constrained view
       );
       const panelBounds = await panel.boundingBox();
       if (!panelBounds) throw new Error('System dialog panel has no bounds.');
-      await page.mouse.move(
-        panelBounds.x + panelBounds.width / 2,
-        panelBounds.y + panelBounds.height / 2,
-      );
-      await page.mouse.wheel(0, 240);
+      if (browserName === 'webkit') {
+        await panel.evaluate((element) => {
+          element.tabIndex = -1;
+          element.focus({ preventScroll: true });
+        });
+        await page.keyboard.press('PageDown');
+      } else {
+        await page.mouse.move(
+          panelBounds.x + panelBounds.width / 2,
+          panelBounds.y + panelBounds.height / 2,
+        );
+        await page.mouse.wheel(0, 240);
+      }
       await expect
         .poll(() => panel.evaluate((element) => element.scrollTop))
         .toBeGreaterThan(0);
+      if (browserName === 'webkit')
+        await panel.evaluate((element) => element.removeAttribute('tabindex'));
     }
     const results = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
@@ -997,8 +1011,11 @@ test('shows accessible system information from the lock file at constrained view
       )
       .toEqual(initialScroll);
 
-    await page.mouse.move(2, Math.floor(scenario.viewport.height / 2));
-    await page.mouse.wheel(0, -400);
+    if (browserName === 'webkit') await page.keyboard.press('PageUp');
+    else {
+      await page.mouse.move(2, Math.floor(scenario.viewport.height / 2));
+      await page.mouse.wheel(0, -400);
+    }
     await expect
       .poll(() => page.evaluate(() => window.scrollY))
       .toBeLessThan(initialScroll.top);

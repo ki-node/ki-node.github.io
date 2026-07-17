@@ -26,7 +26,7 @@ const lockedProject = {
 const lockedPoster = {
   id: 'poster',
   repository: 'ki-node/poster',
-  commit: '755de154b6426c912d7af0caab9e45c75aa4fc7b',
+  commit: '4c23ee5d2b568de5425da338e920cbefcaa5ddcc',
   buildCommand: 'npm run build:embedded',
   buildOutput: 'dist-embedded',
   targetPath: 'public/projects/poster',
@@ -92,7 +92,7 @@ describe('project lock', () => {
       projectId: 'poster',
       buildContext: 'embedded',
       repository: 'ki-node/poster',
-      commit: '755de154b6426c912d7af0caab9e45c75aa4fc7b',
+      commit: '4c23ee5d2b568de5425da338e920cbefcaa5ddcc',
       buildCommand: 'npm run build:embedded',
     });
   });

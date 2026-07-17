@@ -6,6 +6,9 @@ export default tseslint.config(
   {
     ignores: [
       'dist/**',
+      '**/DerivedData/**',
+      'ios/App/build/**',
+      'ios/App/output/**',
       'ios/App/App/public/**',
       'public/projects/**',
       'tmp/**',

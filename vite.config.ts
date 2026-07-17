@@ -4,7 +4,13 @@ export default defineConfig({
   base: './',
   test: {
     clearMocks: true,
-    exclude: [...configDefaults.exclude, 'tests/e2e/**'],
+    exclude: [
+      ...configDefaults.exclude,
+      'tests/e2e/**',
+      '**/DerivedData/**',
+      'ios/App/build/**',
+      'ios/App/output/**',
+    ],
     environment: 'jsdom',
     environmentOptions: {
       jsdom: {

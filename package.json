@@ -1,7 +1,7 @@
 {
   "name": "ki-node",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "type": "module",
   "engines": {
     "node": ">=22.0.0"
@@ -16,10 +16,11 @@
     "check:ios-signing": "node scripts/check-ios-signing.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
+    "check:eslint-build-output": "node scripts/check-eslint-build-output.mjs",
     "format:check": "prettier --check . --ignore-unknown",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "check": "npm run check:projects && npm run check:ios-signing && npm run typecheck && npm run lint && npm run format:check && npm run test"
+    "check": "npm run check:projects && npm run check:ios-signing && npm run typecheck && npm run check:eslint-build-output && npm run format:check && npm run test"
   },
   "dependencies": {
     "@capacitor/app-launcher": "8.0.1",

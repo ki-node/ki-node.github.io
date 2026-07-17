@@ -791,3 +791,136 @@ test('keeps the Hub and active Poster frame accessible', async ({ page }) => {
     .analyze();
   expect(results.violations).toEqual([]);
 });
+
+test('restores the active URL project after pagehide/pageshow without duplicate frames', async ({
+  page,
+}) => {
+  await simulateNativeCapacitor(page);
+  await page.goto('/?project=portfolio');
+  await expect(
+    page.locator('iframe[data-project-frame="portfolio"]'),
+  ).toHaveAttribute('data-frame-state', 'ready');
+
+  await page.evaluate(() => {
+    window.dispatchEvent(
+      new PageTransitionEvent('pagehide', { persisted: true }),
+    );
+  });
+  await expect(page.locator('iframe')).toHaveCount(0);
+  await expect(page.locator('[data-catalog-view]')).toBeVisible();
+
+  await page.evaluate(() => {
+    window.dispatchEvent(
+      new PageTransitionEvent('pageshow', { persisted: true }),
+    );
+    window.dispatchEvent(
+      new PageTransitionEvent('pageshow', { persisted: true }),
+    );
+  });
+  await expect(
+    page.locator('iframe[data-project-frame="portfolio"]'),
+  ).toHaveCount(1);
+  await expect(
+    page.locator('iframe[data-project-frame="portfolio"]'),
+  ).toHaveAttribute('data-frame-state', 'ready');
+  await expect(page.locator('[data-launch-screen]')).toBeHidden();
+
+  await page.evaluate(() =>
+    document.dispatchEvent(new Event('visibilitychange')),
+  );
+  await expect(page.locator('iframe')).toHaveCount(1);
+});
+
+test('offers a fresh retry and a complete catalog return from the error state', async ({
+  page,
+}) => {
+  await simulateNativeCapacitor(page);
+  let releaseBlockedLoads: () => void = () => undefined;
+  const blockedLoads = new Promise<void>((resolve) => {
+    releaseBlockedLoads = resolve;
+  });
+  let blockPortfolio = true;
+  await page.route('**/projects/portfolio/index.html', async (route) => {
+    if (blockPortfolio) await blockedLoads;
+    await route.continue();
+  });
+  await page.goto('/');
+  const opener = portfolioButton(page);
+  await opener.click();
+  await page
+    .locator('iframe[data-project-frame="portfolio"]')
+    .dispatchEvent('error');
+
+  await expect(
+    page.getByRole('heading', { name: /Portfolio konnte/u }),
+  ).toBeFocused();
+  await expect(
+    page.getByRole('button', { name: 'Erneut versuchen' }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: 'Zurück zu Projekten' }),
+  ).toBeVisible();
+  const errorResults = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
+    .analyze();
+  expect(errorResults.violations).toEqual([]);
+
+  await page.getByRole('button', { name: 'Zurück zu Projekten' }).click();
+  await expect(page.locator('iframe')).toHaveCount(0);
+  await expect(opener).toBeFocused();
+
+  await opener.click();
+  const failedFrame = page.locator('iframe[data-project-frame="portfolio"]');
+  const failedHandle = await failedFrame.elementHandle();
+  await failedFrame.dispatchEvent('error');
+  blockPortfolio = false;
+  releaseBlockedLoads();
+  await page.getByRole('button', { name: 'Erneut versuchen' }).click();
+  expect(await failedHandle?.evaluate((element) => element.isConnected)).toBe(
+    false,
+  );
+  await expect(
+    page.locator('iframe[data-project-frame="portfolio"]'),
+  ).toHaveCount(1);
+  await expect(
+    page.locator('iframe[data-project-frame="portfolio"]'),
+  ).toHaveAttribute('data-frame-state', 'ready');
+});
+
+test('shows accessible system information from the lock file at constrained viewports', async ({
+  page,
+}) => {
+  await page.goto('/');
+  for (const viewport of [
+    { width: 393, height: 852 },
+    { width: 320, height: 568 },
+    { width: 390, height: 500 },
+    { width: 844, height: 390 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await page.getByRole('button', { name: 'Systeminformationen' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Systeminformationen' });
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toContainText('Orbit');
+    await expect(dialog).toContainText('1.0.0');
+    await expect(dialog).toContainText('Web-Hub');
+    await expect(dialog).toContainText('ki-node/portfolio');
+    await expect(dialog).toContainText('ki-node/poster');
+    await expect(dialog).toContainText('ki-node/blackbox');
+    await expect(dialog.locator('code')).toHaveCount(3);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth + 1,
+      ),
+    ).toBe(true);
+    const results = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
+      .analyze();
+    expect(results.violations).toEqual([]);
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
+    await expect(
+      page.getByRole('button', { name: 'Systeminformationen' }),
+    ).toBeFocused();
+  }
+});

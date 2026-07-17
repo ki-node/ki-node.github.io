@@ -34,16 +34,27 @@ const blackboxHapticMessage = {
 
 const fixture = `
   <div data-runtime-label></div>
-  <main data-catalog-view><h1 id="hub-title" tabindex="-1">Hub</h1><div data-project-list></div></main>
+  <main data-catalog-view><h1 id="hub-title" tabindex="-1">Hub</h1><div data-project-list></div><button data-open-system-dialog>Systeminformationen</button></main>
   <section data-project-view hidden>
     <button data-close-project>Close</button>
     <p data-active-project-kicker></p>
     <h2 data-active-project-title></h2>
     <div data-frame-host></div>
     <div data-load-state><span data-load-title></span></div>
-    <div data-error-state hidden></div>
-    <button data-retry-project>Retry</button>
+    <div data-error-state hidden>
+      <h3 data-error-title tabindex="-1"></h3>
+      <p data-error-description></p>
+      <button data-retry-project>Retry</button>
+      <button data-error-close-project>Back</button>
+    </div>
   </section>
+  <dialog data-system-dialog>
+    <span data-system-product></span>
+    <span data-system-version></span>
+    <span data-system-runtime></span>
+    <ul data-system-projects></ul>
+    <button data-close-system-dialog>Close</button>
+  </dialog>
   <p data-announcer></p>
   <template data-project-card>
     <article>
@@ -77,6 +88,7 @@ describe('HubController', () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     controller.destroy();
     document.body.replaceChildren();
     window.history.replaceState({}, '', '/');
@@ -118,6 +130,9 @@ describe('HubController', () => {
     expect(
       document.querySelector('[data-load-state]')?.hasAttribute('hidden'),
     ).toBe(false);
+    expect(document.activeElement).toBe(
+      document.querySelector('[data-close-project]'),
+    );
   });
 
   it('grants only Poster the sandbox and Permissions Policy needed by browser fallbacks', () => {
@@ -368,6 +383,112 @@ describe('HubController', () => {
     expect(
       document.querySelector('[data-load-state]')?.hasAttribute('hidden'),
     ).toBe(false);
+    expect(document.activeElement).toBe(
+      document.querySelector('[data-close-project]'),
+    );
+  });
+
+  it('keeps an error terminal when the failed iframe reports a late load', () => {
+    controller.openProject('portfolio', null, 'none');
+    const failedFrame = document.querySelector<HTMLIFrameElement>('iframe');
+    failedFrame?.dispatchEvent(new Event('error'));
+    failedFrame?.dispatchEvent(new Event('load'));
+
+    expect(controller.getFrameSessionState()).toBe('error');
+    expect(failedFrame?.dataset.frameState).toBe('error');
+    expect(
+      document.querySelector('[data-error-state]')?.hasAttribute('hidden'),
+    ).toBe(false);
+    expect(document.activeElement).toBe(
+      document.querySelector('[data-error-title]'),
+    );
+    expect(document.querySelector('[data-announcer]')?.textContent).toBe(
+      'Portfolio konnte nicht geladen werden.',
+    );
+  });
+
+  it('creates only one new session for repeated retry requests', () => {
+    controller.openProject('portfolio', null, 'none');
+    document.querySelector('iframe')?.dispatchEvent(new Event('error'));
+    const retry = document.querySelector<HTMLButtonElement>(
+      '[data-retry-project]',
+    );
+
+    retry?.click();
+    const retryFrame = document.querySelector('iframe');
+    retry?.click();
+
+    expect(document.querySelectorAll('iframe')).toHaveLength(1);
+    expect(document.querySelector('iframe')).toBe(retryFrame);
+    expect(controller.getFrameSessionState()).toBe('loading');
+  });
+
+  it('ignores late load and error events from a replaced iframe', () => {
+    controller.openProject('poster', null, 'none');
+    const oldFrame = document.querySelector<HTMLIFrameElement>('iframe');
+    oldFrame?.dispatchEvent(new Event('error'));
+    document.querySelector<HTMLButtonElement>('[data-retry-project]')?.click();
+    const currentFrame = document.querySelector<HTMLIFrameElement>('iframe');
+
+    oldFrame?.dispatchEvent(new Event('load'));
+    oldFrame?.dispatchEvent(new Event('error'));
+
+    expect(oldFrame?.isConnected).toBe(false);
+    expect(currentFrame).not.toBe(oldFrame);
+    expect(controller.getFrameSessionState()).toBe('loading');
+    expect(currentFrame?.dataset.frameState).toBe('loading');
+  });
+
+  it('enters the error state when the current loading session times out', () => {
+    vi.useFakeTimers();
+    controller.destroy();
+    controller = new HubController({
+      document,
+      window,
+      runtime: createHubRuntime('web'),
+      loadTimeoutMs: 20,
+    });
+    controller.init();
+    controller.openProject('blackbox', null, 'none');
+
+    vi.advanceTimersByTime(20);
+
+    expect(controller.getFrameSessionState()).toBe('error');
+    expect(document.querySelector('iframe')?.dataset.frameState).toBe('error');
+  });
+
+  it('uses the shared close path from the error view and restores focus', () => {
+    const button = document.querySelector<HTMLButtonElement>(
+      '[data-project-button][data-project-id="portfolio"]',
+    );
+    button?.click();
+    document.querySelector('iframe')?.dispatchEvent(new Event('error'));
+
+    document
+      .querySelector<HTMLButtonElement>('[data-error-close-project]')
+      ?.click();
+
+    expect(controller.getActiveProjectId()).toBeNull();
+    expect(document.querySelectorAll('iframe')).toHaveLength(0);
+    expect(document.activeElement).toBe(button);
+  });
+
+  it('reinitializes from the URL without duplicate cards or listeners', () => {
+    window.history.replaceState({}, '', '/?project=blackbox');
+    controller.destroy();
+    controller.destroy();
+    controller.init();
+    controller.init();
+
+    expect(controller.getActiveProjectId()).toBe('blackbox');
+    expect(document.querySelectorAll('[data-project-list] > *')).toHaveLength(
+      3,
+    );
+    expect(document.querySelectorAll('iframe')).toHaveLength(1);
+
+    document.dispatchEvent(new Event('visibilitychange'));
+    expect(controller.getActiveProjectId()).toBe('blackbox');
+    expect(document.querySelectorAll('iframe')).toHaveLength(1);
   });
 
   it('accepts allowed links only from the active native Portfolio iframe', () => {

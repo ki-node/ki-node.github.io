@@ -2,6 +2,6 @@
   "schemaVersion": 1,
   "id": "poster",
   "repository": "ki-node/poster",
-  "commit": "2628e6f114ebb35bac716953b608170b54b371c9",
+  "commit": "91fa47e1286a146c2ddab475418a966a9ff6028d",
   "buildCommand": "npm run build:embedded"
 }

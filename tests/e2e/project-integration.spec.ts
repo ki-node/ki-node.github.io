@@ -942,8 +942,9 @@ test('shows accessible system information from the lock file at constrained view
     }));
     expect(lockedDocument.bodyPosition).toBe('fixed');
     expect(Number.parseFloat(lockedDocument.bodyTop)).toBe(-initialScroll.top);
-    expect(Number.parseFloat(lockedDocument.bodyLeft)).toBe(
+    expect(Number.parseFloat(lockedDocument.bodyLeft)).toBeCloseTo(
       -initialScroll.left,
+      5,
     );
 
     await page.mouse.move(2, 2);

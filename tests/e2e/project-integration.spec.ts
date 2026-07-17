@@ -933,15 +933,32 @@ test('shows accessible system information from the lock file at constrained view
         () => document.documentElement.scrollWidth <= window.innerWidth + 1,
       ),
     ).toBe(true);
-    await expect
-      .poll(() => page.evaluate(() => window.scrollY))
-      .toBe(initialScroll.top);
+    const lockedDocument = await page.evaluate(() => ({
+      bodyLeft: document.body.style.left,
+      bodyPosition: document.body.style.position,
+      bodyTop: document.body.style.top,
+      scrollLeft: window.scrollX,
+      scrollTop: window.scrollY,
+    }));
+    expect(lockedDocument.bodyPosition).toBe('fixed');
+    expect(Number.parseFloat(lockedDocument.bodyTop)).toBe(-initialScroll.top);
+    expect(Number.parseFloat(lockedDocument.bodyLeft)).toBe(
+      -initialScroll.left,
+    );
 
     await page.mouse.move(2, 2);
     await page.mouse.wheel(0, -400);
     await expect
-      .poll(() => page.evaluate(() => window.scrollY))
-      .toBe(initialScroll.top);
+      .poll(() =>
+        page.evaluate(() => ({
+          bodyLeft: document.body.style.left,
+          bodyPosition: document.body.style.position,
+          bodyTop: document.body.style.top,
+          scrollLeft: window.scrollX,
+          scrollTop: window.scrollY,
+        })),
+      )
+      .toEqual(lockedDocument);
 
     const panel = dialog.locator('.system-dialog__panel');
     const panelMetrics = await panel.evaluate((element) => ({

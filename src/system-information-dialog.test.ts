@@ -1,0 +1,152 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { SystemInformationDialog } from './system-information-dialog';
+import type { DocumentScrollLockHandle } from './document-scroll-lock';
+
+const fixture = `
+  <button data-open-system-dialog>Systeminformationen</button>
+  <dialog data-system-dialog aria-labelledby="system-title">
+    <h2 id="system-title">Systeminformationen</h2>
+    <span data-system-product></span>
+    <span data-system-version></span>
+    <span data-system-runtime></span>
+    <ul data-system-projects></ul>
+    <button data-close-system-dialog>Schließen</button>
+  </dialog>
+`;
+
+describe('SystemInformationDialog', () => {
+  let dialogController: SystemInformationDialog;
+  let dialog: HTMLDialogElement;
+  let scrollLock: DocumentScrollLockHandle;
+  let lock: ReturnType<typeof vi.fn<() => void>>;
+  let unlock: ReturnType<typeof vi.fn<() => void>>;
+
+  beforeEach(() => {
+    document.body.innerHTML = fixture;
+    const dialogElement = document.querySelector<HTMLDialogElement>('dialog');
+    if (!dialogElement) throw new Error('Dialog fixture is missing.');
+    dialog = dialogElement;
+    dialog.showModal = vi.fn(() => dialog.setAttribute('open', ''));
+    dialog.close = vi.fn(() => {
+      dialog.removeAttribute('open');
+      dialog.dispatchEvent(new Event('close'));
+    });
+    lock = vi.fn<() => void>();
+    unlock = vi.fn<() => void>();
+    scrollLock = {
+      destroy: vi.fn(),
+      lock,
+      unlock,
+    };
+    dialogController = new SystemInformationDialog({
+      document,
+      runtimeKind: 'native',
+      scrollLock,
+    });
+    dialogController.init();
+  });
+
+  afterEach(() => {
+    dialogController.destroy();
+    document.body.replaceChildren();
+  });
+
+  it('renders the runtime, version, repositories and complete pins', () => {
+    expect(document.querySelector('[data-system-product]')?.textContent).toBe(
+      'Orbit',
+    );
+    expect(document.querySelector('[data-system-version]')?.textContent).toBe(
+      '1.0.0',
+    );
+    expect(document.querySelector('[data-system-runtime]')?.textContent).toBe(
+      'Native iOS-App',
+    );
+    expect(document.querySelectorAll('[data-system-projects] li')).toHaveLength(
+      3,
+    );
+    expect(
+      document.querySelector('[data-system-projects]')?.textContent,
+    ).toContain('ki-node/portfolio');
+    for (const code of document.querySelectorAll('code')) {
+      expect(code.textContent).toMatch(/^[0-9a-f]{40}$/u);
+    }
+  });
+
+  it('opens once, closes by button and restores focus to the trigger', () => {
+    const opener = document.querySelector<HTMLButtonElement>(
+      '[data-open-system-dialog]',
+    );
+    if (!opener) throw new Error('Dialog opener fixture is missing.');
+    opener.focus();
+    opener.click();
+    opener.click();
+
+    expect(dialog.showModal).toHaveBeenCalledOnce();
+    expect(lock).toHaveBeenCalledOnce();
+    expect(dialog.open).toBe(true);
+    expect(document.activeElement).toBe(
+      document.querySelector('[data-close-system-dialog]'),
+    );
+
+    document
+      .querySelector<HTMLButtonElement>('[data-close-system-dialog]')
+      ?.click();
+    expect(dialog.open).toBe(false);
+    expect(unlock).toHaveBeenCalledOnce();
+    expect(document.activeElement).toBe(opener);
+  });
+
+  it('unlocks when Escape closes the native dialog', () => {
+    const opener = document.querySelector<HTMLButtonElement>(
+      '[data-open-system-dialog]',
+    );
+    opener?.focus();
+    opener?.click();
+
+    dialog.dispatchEvent(new Event('cancel'));
+    dialog.close();
+
+    expect(unlock).toHaveBeenCalledOnce();
+    expect(document.activeElement).toBe(opener);
+  });
+
+  it('unlocks during lifecycle destruction and tolerates repeated closing', () => {
+    document
+      .querySelector<HTMLButtonElement>('[data-open-system-dialog]')
+      ?.click();
+
+    dialogController.destroy();
+    dialogController.destroy();
+    dialog.close();
+
+    expect(lock).toHaveBeenCalledOnce();
+    expect(unlock).toHaveBeenCalledOnce();
+  });
+
+  it('releases the lock when showModal fails', () => {
+    dialog.showModal = vi.fn(() => {
+      throw new Error('Dialog is unavailable.');
+    });
+
+    document
+      .querySelector<HTMLButtonElement>('[data-open-system-dialog]')
+      ?.click();
+
+    expect(lock).toHaveBeenCalledOnce();
+    expect(unlock).toHaveBeenCalledOnce();
+    expect(dialog.open).toBe(false);
+  });
+
+  it('does not duplicate handlers across repeated lifecycle calls', () => {
+    dialogController.init();
+    dialogController.destroy();
+    dialogController.destroy();
+    dialogController.init();
+
+    document
+      .querySelector<HTMLButtonElement>('[data-open-system-dialog]')
+      ?.click();
+    expect(dialog.showModal).toHaveBeenCalledOnce();
+  });
+});

@@ -15,6 +15,8 @@ import {
   parsePosterFileExportMessage,
 } from './bridge-protocol';
 import { createPosterExporter, type PosterExporter } from './poster-export';
+import { SystemInformationDialog } from './system-information-dialog';
+import { DocumentScrollLock } from './document-scroll-lock';
 
 interface HubControllerOptions {
   readonly document: Document;
@@ -25,13 +27,17 @@ interface HubControllerOptions {
   readonly posterExporter?: PosterExporter;
 }
 
+export type FrameSessionState = 'loading' | 'ready' | 'error' | 'closed';
+
 interface FrameSession {
+  readonly generation: number;
   readonly element: HTMLIFrameElement;
   readonly onError: () => void;
   readonly onLoad: () => void;
   readonly onMessage: (event: MessageEvent) => void;
   readonly seenPosterExportRequests: Set<string>;
-  readonly timeout: number;
+  state: FrameSessionState;
+  timeout: number | null;
 }
 
 interface ScrollPosition {
@@ -62,15 +68,21 @@ export class HubController {
   private readonly loadTitle: HTMLElement;
   private readonly closeButton: HTMLButtonElement;
   private readonly retryButton: HTMLButtonElement;
+  private readonly errorCloseButton: HTMLButtonElement;
+  private readonly errorTitle: HTMLElement;
+  private readonly errorDescription: HTMLElement;
   private readonly runtimeLabel: HTMLElement;
   private readonly announcer: HTMLElement;
   private readonly catalogHeading: HTMLElement;
+  private readonly systemInformationDialog: SystemInformationDialog;
+  private readonly documentScrollLock: DocumentScrollLock;
   private initialized = false;
   private activeProject: HubProject | null = null;
   private frameSession: FrameSession | null = null;
   private returnFocus: HTMLElement | null = null;
   private activeHistoryOwned = false;
   private catalogScrollPosition: ScrollPosition | null = null;
+  private frameGeneration = 0;
 
   public constructor(options: HubControllerOptions) {
     this.document = options.document;
@@ -92,9 +104,21 @@ export class HubController {
     this.loadTitle = this.requireElement('[data-load-title]');
     this.closeButton = this.requireElement('[data-close-project]');
     this.retryButton = this.requireElement('[data-retry-project]');
+    this.errorCloseButton = this.requireElement('[data-error-close-project]');
+    this.errorTitle = this.requireElement('[data-error-title]');
+    this.errorDescription = this.requireElement('[data-error-description]');
     this.runtimeLabel = this.requireElement('[data-runtime-label]');
     this.announcer = this.requireElement('[data-announcer]');
     this.catalogHeading = this.requireElement('#hub-title');
+    this.documentScrollLock = new DocumentScrollLock({
+      document: this.document,
+      window: this.window,
+    });
+    this.systemInformationDialog = new SystemInformationDialog({
+      document: this.document,
+      runtimeKind: this.runtime.kind,
+      scrollLock: this.documentScrollLock,
+    });
   }
 
   public init(): void {
@@ -105,7 +129,9 @@ export class HubController {
     this.projectList.addEventListener('click', this.handleProjectListClick);
     this.closeButton.addEventListener('click', this.handleCloseClick);
     this.retryButton.addEventListener('click', this.handleRetryClick);
+    this.errorCloseButton.addEventListener('click', this.handleCloseClick);
     this.window.addEventListener('popstate', this.handlePopState);
+    this.systemInformationDialog.init();
     this.initialized = true;
 
     const requestedProject = this.projectIdFromLocation();
@@ -120,10 +146,12 @@ export class HubController {
     this.projectList.removeEventListener('click', this.handleProjectListClick);
     this.closeButton.removeEventListener('click', this.handleCloseClick);
     this.retryButton.removeEventListener('click', this.handleRetryClick);
+    this.errorCloseButton.removeEventListener('click', this.handleCloseClick);
     this.window.removeEventListener('popstate', this.handlePopState);
+    this.systemInformationDialog.destroy();
+    this.documentScrollLock.destroy();
     this.removeFrame();
-    this.resetProjectState(false);
-    this.catalogScrollPosition = null;
+    this.resetProjectState(true);
     this.initialized = false;
   }
 
@@ -138,7 +166,7 @@ export class HubController {
     if (!project || !isProjectAvailable(project)) return;
 
     const replacesOpenProject = this.activeProject !== null;
-    if (!replacesOpenProject) {
+    if (!replacesOpenProject && !this.catalogScrollPosition) {
       this.catalogScrollPosition = {
         left: this.window.scrollX,
         top: this.window.scrollY,
@@ -146,7 +174,7 @@ export class HubController {
     }
     this.removeFrame();
     this.activeProject = project;
-    this.returnFocus = trigger ?? this.returnFocus;
+    this.returnFocus = trigger ?? this.findProjectButton(project.id);
     this.catalogView.hidden = true;
     this.projectView.hidden = false;
     this.document.body.classList.add('is-project-open');
@@ -196,6 +224,10 @@ export class HubController {
     return this.activeProject?.id ?? null;
   }
 
+  public getFrameSessionState(): FrameSessionState | null {
+    return this.frameSession?.state ?? null;
+  }
+
   private readonly handleProjectListClick = (event: Event) => {
     const target = event.target;
     if (!(target instanceof Element)) return;
@@ -207,10 +239,13 @@ export class HubController {
   private readonly handleCloseClick = () => this.closeProject();
 
   private readonly handleRetryClick = () => {
-    if (!this.activeProject) return;
+    if (!this.activeProject || this.frameSession?.state !== 'error') return;
+    const title = this.activeProject.title;
     this.removeFrame();
     this.setLoadingState();
     this.createFrame(this.activeProject);
+    this.closeButton.focus({ preventScroll: true });
+    this.announcer.textContent = `${title} wird erneut geladen.`;
   };
 
   private readonly handlePopState = () => {
@@ -298,25 +333,19 @@ export class HubController {
     frame.tabIndex = -1;
     this.frameHost.setAttribute('aria-busy', 'true');
 
-    const onLoad = () => {
-      if (this.frameSession?.element !== frame) return;
-      this.window.clearTimeout(this.frameSession.timeout);
-      this.loadState.hidden = true;
-      this.errorState.hidden = true;
-      frame.dataset.frameState = 'ready';
-      frame.removeAttribute('aria-hidden');
-      frame.removeAttribute('inert');
-      frame.removeAttribute('tabindex');
-      this.frameHost.removeAttribute('aria-busy');
-      this.announcer.textContent = `${project.title} ist bereit.`;
-      this.sendPosterHostReady(frame, project);
-    };
-    const onError = () => this.showFrameError(frame);
+    const generation = ++this.frameGeneration;
+    // Assigned after handlers are declared so each closure captures this exact generation.
+    // eslint-disable-next-line prefer-const
+    let session: FrameSession;
+    const onLoad = () => this.markFrameReady(session, project);
+    const onError = () => this.showFrameError(session, project);
     const onMessage = (event: MessageEvent) => {
       if (
         this.runtime.kind !== 'native' ||
         this.activeProject?.id !== project.id ||
-        this.frameSession?.element !== frame ||
+        !this.isCurrentSession(session) ||
+        session.state === 'error' ||
+        session.state === 'closed' ||
         event.source !== frame.contentWindow
       ) {
         return;
@@ -340,19 +369,23 @@ export class HubController {
 
       if (project.id !== 'poster') return;
       if (isPosterProjectReadyMessage(event.data)) {
-        this.sendPosterHostReady(frame, project);
+        this.sendPosterHostReady(session, project);
         return;
       }
 
       const message = parsePosterFileExportMessage(event.data);
       if (!message) return;
-      const session = this.frameSession;
       if (session.seenPosterExportRequests.has(message.requestId)) return;
       session.seenPosterExportRequests.add(message.requestId);
       void this.posterExporter
         .exportPng(message)
         .then((status) => {
-          if (this.frameSession !== session) return;
+          if (
+            !this.isCurrentSession(session) ||
+            session.state === 'error' ||
+            session.state === 'closed'
+          )
+            return;
           frame.contentWindow?.postMessage(
             createPosterExportResultMessage(message.requestId, status),
             '*',
@@ -365,7 +398,12 @@ export class HubController {
                 : 'Poster zum Teilen bereit.';
         })
         .catch(() => {
-          if (this.frameSession !== session) return;
+          if (
+            !this.isCurrentSession(session) ||
+            session.state === 'error' ||
+            session.state === 'closed'
+          )
+            return;
           frame.contentWindow?.postMessage(
             createPosterExportResultMessage(message.requestId, 'error'),
             '*',
@@ -377,52 +415,84 @@ export class HubController {
     frame.addEventListener('error', onError, { once: true });
     this.window.addEventListener('message', onMessage);
 
-    const timeout = this.window.setTimeout(
-      () => this.showFrameError(frame),
-      this.loadTimeoutMs,
-    );
-    this.frameSession = {
+    session = {
+      generation,
       element: frame,
       onError,
       onLoad,
       onMessage,
       seenPosterExportRequests: new Set(),
-      timeout,
+      state: 'loading',
+      timeout: null,
     };
+    session.timeout = this.window.setTimeout(
+      () => this.showFrameError(session, project),
+      this.loadTimeoutMs,
+    );
+    this.frameSession = session;
     this.frameHost.append(frame);
   }
 
   private sendPosterHostReady(
-    frame: HTMLIFrameElement,
+    session: FrameSession,
     project: HubProject,
   ): void {
     if (
       this.runtime.kind !== 'native' ||
       project.id !== 'poster' ||
-      this.frameSession?.element !== frame
+      !this.isCurrentSession(session) ||
+      session.state === 'error' ||
+      session.state === 'closed'
     ) {
       return;
     }
-    frame.contentWindow?.postMessage(createPosterHostReadyMessage(), '*');
+    session.element.contentWindow?.postMessage(
+      createPosterHostReadyMessage(),
+      '*',
+    );
   }
 
-  private showFrameError(frame: HTMLIFrameElement): void {
-    if (this.frameSession?.element !== frame) return;
-    this.window.clearTimeout(this.frameSession.timeout);
-    frame.dataset.frameState = 'error';
-    frame.setAttribute('aria-hidden', 'true');
-    frame.setAttribute('inert', '');
-    frame.tabIndex = -1;
+  private markFrameReady(session: FrameSession, project: HubProject): void {
+    if (!this.isCurrentSession(session, 'loading')) return;
+    this.clearSessionTimeout(session);
+    session.state = 'ready';
+    this.loadState.hidden = true;
+    this.errorState.hidden = true;
+    session.element.dataset.frameState = 'ready';
+    session.element.removeAttribute('aria-hidden');
+    session.element.removeAttribute('inert');
+    session.element.removeAttribute('tabindex');
+    this.frameHost.removeAttribute('aria-busy');
+    this.announcer.textContent = `${project.title} ist bereit.`;
+    this.sendPosterHostReady(session, project);
+  }
+
+  private showFrameError(session: FrameSession, project: HubProject): void {
+    if (!this.isCurrentSession(session, 'loading')) return;
+    this.clearSessionTimeout(session);
+    session.state = 'error';
+    session.element.dataset.frameState = 'error';
+    session.element.setAttribute('aria-hidden', 'true');
+    session.element.setAttribute('inert', '');
+    session.element.tabIndex = -1;
     this.frameHost.removeAttribute('aria-busy');
     this.loadState.hidden = true;
     this.errorState.hidden = false;
-    this.announcer.textContent = 'Projekt konnte nicht geladen werden.';
+    const message = `${project.title} konnte nicht geladen werden.`;
+    this.errorTitle.textContent = message;
+    this.errorDescription.textContent =
+      'Du kannst eine neue Sitzung starten oder zur Projektübersicht zurückkehren.';
+    this.announcer.textContent = message;
+    this.errorTitle.focus({ preventScroll: true });
   }
 
   private removeFrame(): void {
     if (!this.frameSession) return;
-    const { element, onError, onLoad, onMessage, timeout } = this.frameSession;
-    this.window.clearTimeout(timeout);
+    const session = this.frameSession;
+    const { element, onError, onLoad, onMessage } = session;
+    session.state = 'closed';
+    element.dataset.frameState = 'closed';
+    this.clearSessionTimeout(session);
     element.removeEventListener('load', onLoad);
     element.removeEventListener('error', onError);
     this.window.removeEventListener('message', onMessage);
@@ -434,6 +504,23 @@ export class HubController {
   private setLoadingState(): void {
     this.loadState.hidden = false;
     this.errorState.hidden = true;
+  }
+
+  private isCurrentSession(
+    session: FrameSession,
+    expectedState?: FrameSessionState,
+  ): boolean {
+    return (
+      this.frameSession === session &&
+      this.frameSession.generation === session.generation &&
+      (expectedState === undefined || session.state === expectedState)
+    );
+  }
+
+  private clearSessionTimeout(session: FrameSession): void {
+    if (session.timeout === null) return;
+    this.window.clearTimeout(session.timeout);
+    session.timeout = null;
   }
 
   private resetProjectState(restoreCatalog: boolean): void {
@@ -490,6 +577,12 @@ export class HubController {
       top: this.catalogScrollPosition.top,
     });
     this.catalogScrollPosition = null;
+  }
+
+  private findProjectButton(projectId: ProjectId): HTMLElement | null {
+    return this.projectList.querySelector<HTMLElement>(
+      `[data-project-button][data-project-id="${projectId}"]`,
+    );
   }
 
   private requireElement<T extends Element = HTMLElement>(

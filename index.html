@@ -93,7 +93,9 @@
 
                 <footer class="site-footer">
                     <span>Orbit / 2026</span>
-                    <span>Web + native iOS</span>
+                    <button type="button" data-open-system-dialog>
+                        Systeminformationen
+                    </button>
                 </footer>
             </main>
 
@@ -143,23 +145,86 @@
                     <div
                         class="error-state"
                         data-error-state
-                        role="alert"
+                        role="group"
+                        aria-labelledby="project-error-title"
+                        aria-describedby="project-error-description"
                         hidden
                     >
                         <span class="error-state__mark" aria-hidden="true"
                             >!</span
                         >
-                        <h3>Projekt konnte nicht geladen werden.</h3>
-                        <p>
-                            Die Hub-Oberfläche bleibt verfügbar. Du kannst es
-                            erneut versuchen.
+                        <h3
+                            id="project-error-title"
+                            data-error-title
+                            tabindex="-1"
+                        >
+                            Projekt konnte nicht geladen werden
+                        </h3>
+                        <p
+                            id="project-error-description"
+                            data-error-description
+                        >
+                            Die Projektansicht ist weiterhin verfügbar.
                         </p>
-                        <button type="button" data-retry-project>
-                            Erneut laden
-                        </button>
+                        <div class="error-state__actions">
+                            <button type="button" data-retry-project>
+                                Erneut versuchen
+                            </button>
+                            <button
+                                class="error-state__secondary"
+                                type="button"
+                                data-error-close-project
+                            >
+                                Zurück zu Projekten
+                            </button>
+                        </div>
                     </div>
                 </div>
             </section>
+
+            <dialog
+                class="system-dialog"
+                data-system-dialog
+                aria-labelledby="system-dialog-title"
+            >
+                <div class="system-dialog__panel">
+                    <div class="system-dialog__heading">
+                        <div>
+                            <p class="eyebrow">Orbit Diagnose</p>
+                            <h2 id="system-dialog-title">
+                                Systeminformationen
+                            </h2>
+                        </div>
+                        <button
+                            class="system-dialog__close"
+                            type="button"
+                            aria-label="Systeminformationen schließen"
+                            data-close-system-dialog
+                        >
+                            ×
+                        </button>
+                    </div>
+                    <dl class="system-dialog__facts">
+                        <div>
+                            <dt>Produkt</dt>
+                            <dd data-system-product></dd>
+                        </div>
+                        <div>
+                            <dt>Version</dt>
+                            <dd data-system-version></dd>
+                        </div>
+                        <div>
+                            <dt>Laufzeit</dt>
+                            <dd data-system-runtime></dd>
+                        </div>
+                    </dl>
+                    <h3>Versionsfixierte Projekte</h3>
+                    <ul
+                        class="system-dialog__projects"
+                        data-system-projects
+                    ></ul>
+                </div>
+            </dialog>
 
             <p
                 class="sr-only"

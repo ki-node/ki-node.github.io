@@ -7,6 +7,10 @@ denselben Build lokal in die iOS-App ein; es wird keine externe Server-URL verwe
 `ki-node` bleibt der technische Organisations-, Repository- und Hosting-Kontext. Der sichtbare
 Produktname im Web und auf iOS ist ausschließlich Orbit.
 
+Die Web-Paketversion für Orbit 1.0 lautet `1.0.0`. Die native Xcode-Konfiguration verwendet dazu
+weiterhin ihre bestehende Marketing-Version `1.0`; persönliche Signing-Werte sind kein Teil der
+Versions- oder Diagnoseanzeige.
+
 Der aktuelle Projektkatalog enthält Portfolio, Poster und Blackbox. Alle drei Projekte sind in
 der nativen App als versionsfixierte Offline-Builds integriert und auf ihre endgültigen
 Squash-Merge-Commits festgeschrieben. Die Architekturentscheidung ist unter
@@ -38,6 +42,45 @@ npx cap open ios
 
 `npm run dev` startet dieselbe Hub-Oberfläche im Browser. Native Haptik wird dort zentral als nicht
 verfügbar behandelt und erzeugt keinen Fehler.
+
+`npm run check:eslint-build-output` legt kurzzeitig eine Regressionstestdatei unter
+`ios/DerivedData/` an und bestätigt, dass ESLint beliebig tief liegende Xcode-Derived-Data- sowie
+`ios/App/build/`- und `ios/App/output/`-Ausgaben ignoriert, echte Quellpfade unter `ios/` aber
+weiter prüfbar bleiben. Der Test entfernt seine Datei in jedem Abschlussfall. Prettier schließt
+`ios/` bereits gezielt aus. Vitest schließt die Xcode-Ausgabepfade zusätzlich von der Testsuche
+aus; TypeScript und Playwright arbeiten bereits mit expliziten Quell- beziehungsweise
+Testverzeichnissen.
+
+## Lifecycle, Wiederherstellung und Diagnose
+
+Ein zentraler `ApplicationLifecycle` initialisiert und zerstört den Hub idempotent. `pagehide`
+beendet Hub-Listener, aktive iframe-Sitzung, Bridge-Zustand und offene Dialoge. Ein nachfolgendes
+`pageshow` – insbesondere aus dem Back-Forward-Cache – initialisiert den Hub genau einmal neu und
+öffnet ein über `?project=` angefordertes Projekt wieder. `visibilitychange` allein schließt kein
+Projekt. Der Web-Launchscreen und der native Splashscreen werden nur beim ersten Start
+ausgeblendet und bei einer Wiederherstellung nicht erneut eingeblendet.
+
+Jede iframe-Sitzung besitzt eine fortlaufende Generation und durchläuft ausschließlich
+`loading`, `ready`, `error` und `closed`. Nur die aktuelle Generation darf Load-, Fehler-,
+Timeout- oder Bridge-Ereignisse verarbeiten. Nach zwölf Sekunden ohne erfolgreichen Load erscheint
+eine projektspezifische Fehleransicht. „Erneut versuchen“ entfernt Listener und Timeout der alten
+Sitzung und erzeugt einen vollständig neuen iframe; „Zurück zu Projekten“ verwendet denselben
+Schließ-, Fokus- und Scroll-Wiederherstellungspfad wie die Toolbar.
+
+Der Katalog-Footer öffnet den barrierefreien Dialog „Systeminformationen“. Er zeigt ausschließlich
+Orbit, Version `1.0.0`, die erkannte Web-/iOS-Laufzeit sowie Repository und vollständigen Pin aller
+drei Projekte. Diese Werte werden direkt aus `package.json` und `projects.lock.json` gebaut; es
+gibt weder GitHub-Laufzeitabrufe noch Zeitstempel, lokale Pfade, Geräte-, Benutzer- oder
+Signing-Daten.
+
+Orbit liest, verändert oder löscht weiterhin keinen projektspezifischen Speicher. Insbesondere
+bleibt `black-box-progress-v2` vollständig im Blackbox-Kontext. Ein projektweiser Datenreset ist
+bewusst nicht enthalten und erfordert später ein separates, versioniertes Protokoll aller
+beteiligten Projekte.
+
+Die vollständige Prüfung umfasst `npm run check`, `npm run build`,
+`npm run check:project-copy`, `npx cap sync ios`, `npm run check:ios-project-copy`,
+`npm run check:ios-signing` und `npm run test:e2e`.
 
 ## Branding
 
@@ -190,6 +233,12 @@ Capacitor-Sync und CI weiterhin ohne persönliche Signierungsdaten.
 
 `git update-index --skip-worktree` wird hierfür bewusst nicht verwendet: Das
 könnte echte spätere Änderungen an der Xcode-Projektdatei lokal verbergen.
+
+Capacitors CLI kann ein physisch angeschlossenes iPhone in einzelnen Umgebungen nicht als Target
+erkennen, obwohl Xcode das Gerät korrekt anzeigt. In diesem Fall erfolgen Installation und Start
+direkt über Xcode. Ein Codesignierungsfehler `errSecInternalComponent` kann durch einen gesperrten
+Login-Schlüsselbund verursacht werden. Passwörter, Team-IDs und andere Signing-Daten gehören
+niemals in Dokumentation oder Repository.
 
 Capacitor verwaltet die Abhängigkeiten in `ios/App/CapApp-SPM`. Dieser Ordner sollte nicht manuell
 bearbeitet werden. Apple Watch und Apple TV sind noch nicht Teil dieses Grundgerüsts; spätere

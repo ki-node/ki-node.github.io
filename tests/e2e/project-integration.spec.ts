@@ -791,3 +791,233 @@ test('keeps the Hub and active Poster frame accessible', async ({ page }) => {
     .analyze();
   expect(results.violations).toEqual([]);
 });
+
+test('restores the active URL project after pagehide/pageshow without duplicate frames', async ({
+  page,
+}) => {
+  await simulateNativeCapacitor(page);
+  await page.goto('/?project=portfolio');
+  await expect(
+    page.locator('iframe[data-project-frame="portfolio"]'),
+  ).toHaveAttribute('data-frame-state', 'ready');
+
+  await page.evaluate(() => {
+    window.dispatchEvent(
+      new PageTransitionEvent('pagehide', { persisted: true }),
+    );
+  });
+  await expect(page.locator('iframe')).toHaveCount(0);
+  await expect(page.locator('[data-catalog-view]')).toBeVisible();
+
+  await page.evaluate(() => {
+    window.dispatchEvent(
+      new PageTransitionEvent('pageshow', { persisted: true }),
+    );
+    window.dispatchEvent(
+      new PageTransitionEvent('pageshow', { persisted: true }),
+    );
+  });
+  await expect(
+    page.locator('iframe[data-project-frame="portfolio"]'),
+  ).toHaveCount(1);
+  await expect(
+    page.locator('iframe[data-project-frame="portfolio"]'),
+  ).toHaveAttribute('data-frame-state', 'ready');
+  await expect(page.locator('[data-launch-screen]')).toBeHidden();
+
+  await page.evaluate(() =>
+    document.dispatchEvent(new Event('visibilitychange')),
+  );
+  await expect(page.locator('iframe')).toHaveCount(1);
+});
+
+test('offers a fresh retry and a complete catalog return from the error state', async ({
+  page,
+}) => {
+  await simulateNativeCapacitor(page);
+  let releaseBlockedLoads: () => void = () => undefined;
+  const blockedLoads = new Promise<void>((resolve) => {
+    releaseBlockedLoads = resolve;
+  });
+  let blockPortfolio = true;
+  await page.route('**/projects/portfolio/index.html', async (route) => {
+    if (blockPortfolio) await blockedLoads;
+    await route.continue();
+  });
+  await page.goto('/');
+  const opener = portfolioButton(page);
+  await opener.click();
+  await page
+    .locator('iframe[data-project-frame="portfolio"]')
+    .dispatchEvent('error');
+
+  await expect(
+    page.getByRole('heading', { name: /Portfolio konnte/u }),
+  ).toBeFocused();
+  await expect(
+    page.getByRole('button', { name: 'Erneut versuchen' }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: 'Zurück zu Projekten' }),
+  ).toBeVisible();
+  const errorResults = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
+    .analyze();
+  expect(errorResults.violations).toEqual([]);
+
+  await page.getByRole('button', { name: 'Zurück zu Projekten' }).click();
+  await expect(page.locator('iframe')).toHaveCount(0);
+  await expect(opener).toBeFocused();
+
+  await opener.click();
+  const failedFrame = page.locator('iframe[data-project-frame="portfolio"]');
+  const failedHandle = await failedFrame.elementHandle();
+  await failedFrame.dispatchEvent('error');
+  blockPortfolio = false;
+  releaseBlockedLoads();
+  await page.getByRole('button', { name: 'Erneut versuchen' }).click();
+  expect(await failedHandle?.evaluate((element) => element.isConnected)).toBe(
+    false,
+  );
+  await expect(
+    page.locator('iframe[data-project-frame="portfolio"]'),
+  ).toHaveCount(1);
+  await expect(
+    page.locator('iframe[data-project-frame="portfolio"]'),
+  ).toHaveAttribute('data-frame-state', 'ready');
+});
+
+test('shows accessible system information from the lock file at constrained viewports', async ({
+  page,
+  browserName,
+}) => {
+  await page.goto('/');
+  for (const scenario of [
+    { viewport: { width: 393, height: 852 }, reducedMotion: false },
+    { viewport: { width: 320, height: 568 }, reducedMotion: false },
+    { viewport: { width: 390, height: 500 }, reducedMotion: false },
+    { viewport: { width: 844, height: 390 }, reducedMotion: true },
+  ]) {
+    await page.setViewportSize(scenario.viewport);
+    await page.emulateMedia({
+      reducedMotion: scenario.reducedMotion ? 'reduce' : 'no-preference',
+    });
+    await page.evaluate(() => {
+      const root = document.documentElement;
+      const previousScrollBehavior = root.style.scrollBehavior;
+      root.style.scrollBehavior = 'auto';
+      window.scrollTo(0, root.scrollHeight);
+      root.style.scrollBehavior = previousScrollBehavior;
+    });
+    await expect
+      .poll(() => page.evaluate(() => window.scrollY))
+      .toBeGreaterThan(0);
+    const initialScroll = await page.evaluate(() => ({
+      left: window.scrollX,
+      top: window.scrollY,
+    }));
+    expect(initialScroll.top).toBeGreaterThan(0);
+
+    const opener = page.getByRole('button', { name: 'Systeminformationen' });
+    await opener.click();
+    const dialog = page.getByRole('dialog', { name: 'Systeminformationen' });
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toContainText('Orbit');
+    await expect(dialog).toContainText('1.0.0');
+    await expect(dialog).toContainText('Web-Hub');
+    await expect(dialog).toContainText('ki-node/portfolio');
+    await expect(dialog).toContainText('ki-node/poster');
+    await expect(dialog).toContainText('ki-node/blackbox');
+    await expect(dialog.locator('code')).toHaveCount(3);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth + 1,
+      ),
+    ).toBe(true);
+    const lockedDocument = await page.evaluate(() => ({
+      bodyLeft: document.body.style.left,
+      bodyPosition: document.body.style.position,
+      bodyTop: document.body.style.top,
+      scrollLeft: window.scrollX,
+      scrollTop: window.scrollY,
+    }));
+    expect(lockedDocument.bodyPosition).toBe('fixed');
+    expect(Number.parseFloat(lockedDocument.bodyTop)).toBe(-initialScroll.top);
+    expect(Number.parseFloat(lockedDocument.bodyLeft)).toBeCloseTo(
+      -initialScroll.left,
+      5,
+    );
+
+    if (browserName === 'webkit') await page.keyboard.press('PageUp');
+    else {
+      await page.mouse.move(2, 2);
+      await page.mouse.wheel(0, -400);
+    }
+    await expect
+      .poll(() =>
+        page.evaluate(() => ({
+          bodyLeft: document.body.style.left,
+          bodyPosition: document.body.style.position,
+          bodyTop: document.body.style.top,
+          scrollLeft: window.scrollX,
+          scrollTop: window.scrollY,
+        })),
+      )
+      .toEqual(lockedDocument);
+
+    const panel = dialog.locator('.system-dialog__panel');
+    const panelMetrics = await panel.evaluate((element) => ({
+      clientHeight: element.clientHeight,
+      scrollHeight: element.scrollHeight,
+    }));
+    if (
+      scenario.viewport.height <= 568 ||
+      scenario.viewport.width > scenario.viewport.height
+    ) {
+      expect(panelMetrics.scrollHeight).toBeGreaterThan(
+        panelMetrics.clientHeight,
+      );
+      const panelBounds = await panel.boundingBox();
+      if (!panelBounds) throw new Error('System dialog panel has no bounds.');
+      if (browserName === 'webkit') {
+        await panel.evaluate((element) => {
+          element.tabIndex = -1;
+          element.focus({ preventScroll: true });
+        });
+        await page.keyboard.press('PageDown');
+      } else {
+        await page.mouse.move(
+          panelBounds.x + panelBounds.width / 2,
+          panelBounds.y + panelBounds.height / 2,
+        );
+        await page.mouse.wheel(0, 240);
+      }
+      await expect
+        .poll(() => panel.evaluate((element) => element.scrollTop))
+        .toBeGreaterThan(0);
+      if (browserName === 'webkit')
+        await panel.evaluate((element) => element.removeAttribute('tabindex'));
+    }
+    const results = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
+      .analyze();
+    expect(results.violations).toEqual([]);
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
+    await expect(opener).toBeFocused();
+    await expect
+      .poll(() =>
+        page.evaluate(() => ({ left: window.scrollX, top: window.scrollY })),
+      )
+      .toEqual(initialScroll);
+
+    if (browserName === 'webkit') await page.keyboard.press('PageUp');
+    else {
+      await page.mouse.move(2, Math.floor(scenario.viewport.height / 2));
+      await page.mouse.wheel(0, -400);
+    }
+    await expect
+      .poll(() => page.evaluate(() => window.scrollY))
+      .toBeLessThan(initialScroll.top);
+  }
+});

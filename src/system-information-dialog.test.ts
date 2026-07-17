@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { SystemInformationDialog } from './system-information-dialog';
+import type { DocumentScrollLockHandle } from './document-scroll-lock';
 
 const fixture = `
   <button data-open-system-dialog>Systeminformationen</button>
@@ -17,6 +18,9 @@ const fixture = `
 describe('SystemInformationDialog', () => {
   let dialogController: SystemInformationDialog;
   let dialog: HTMLDialogElement;
+  let scrollLock: DocumentScrollLockHandle;
+  let lock: ReturnType<typeof vi.fn<() => void>>;
+  let unlock: ReturnType<typeof vi.fn<() => void>>;
 
   beforeEach(() => {
     document.body.innerHTML = fixture;
@@ -28,9 +32,17 @@ describe('SystemInformationDialog', () => {
       dialog.removeAttribute('open');
       dialog.dispatchEvent(new Event('close'));
     });
+    lock = vi.fn<() => void>();
+    unlock = vi.fn<() => void>();
+    scrollLock = {
+      destroy: vi.fn(),
+      lock,
+      unlock,
+    };
     dialogController = new SystemInformationDialog({
       document,
       runtimeKind: 'native',
+      scrollLock,
     });
     dialogController.init();
   });
@@ -71,6 +83,7 @@ describe('SystemInformationDialog', () => {
     opener.click();
 
     expect(dialog.showModal).toHaveBeenCalledOnce();
+    expect(lock).toHaveBeenCalledOnce();
     expect(dialog.open).toBe(true);
     expect(document.activeElement).toBe(
       document.querySelector('[data-close-system-dialog]'),
@@ -80,7 +93,49 @@ describe('SystemInformationDialog', () => {
       .querySelector<HTMLButtonElement>('[data-close-system-dialog]')
       ?.click();
     expect(dialog.open).toBe(false);
+    expect(unlock).toHaveBeenCalledOnce();
     expect(document.activeElement).toBe(opener);
+  });
+
+  it('unlocks when Escape closes the native dialog', () => {
+    const opener = document.querySelector<HTMLButtonElement>(
+      '[data-open-system-dialog]',
+    );
+    opener?.focus();
+    opener?.click();
+
+    dialog.dispatchEvent(new Event('cancel'));
+    dialog.close();
+
+    expect(unlock).toHaveBeenCalledOnce();
+    expect(document.activeElement).toBe(opener);
+  });
+
+  it('unlocks during lifecycle destruction and tolerates repeated closing', () => {
+    document
+      .querySelector<HTMLButtonElement>('[data-open-system-dialog]')
+      ?.click();
+
+    dialogController.destroy();
+    dialogController.destroy();
+    dialog.close();
+
+    expect(lock).toHaveBeenCalledOnce();
+    expect(unlock).toHaveBeenCalledOnce();
+  });
+
+  it('releases the lock when showModal fails', () => {
+    dialog.showModal = vi.fn(() => {
+      throw new Error('Dialog is unavailable.');
+    });
+
+    document
+      .querySelector<HTMLButtonElement>('[data-open-system-dialog]')
+      ?.click();
+
+    expect(lock).toHaveBeenCalledOnce();
+    expect(unlock).toHaveBeenCalledOnce();
+    expect(dialog.open).toBe(false);
   });
 
   it('does not duplicate handlers across repeated lifecycle calls', () => {

@@ -16,6 +16,7 @@ import {
 } from './bridge-protocol';
 import { createPosterExporter, type PosterExporter } from './poster-export';
 import { SystemInformationDialog } from './system-information-dialog';
+import { DocumentScrollLock } from './document-scroll-lock';
 
 interface HubControllerOptions {
   readonly document: Document;
@@ -74,6 +75,7 @@ export class HubController {
   private readonly announcer: HTMLElement;
   private readonly catalogHeading: HTMLElement;
   private readonly systemInformationDialog: SystemInformationDialog;
+  private readonly documentScrollLock: DocumentScrollLock;
   private initialized = false;
   private activeProject: HubProject | null = null;
   private frameSession: FrameSession | null = null;
@@ -108,9 +110,14 @@ export class HubController {
     this.runtimeLabel = this.requireElement('[data-runtime-label]');
     this.announcer = this.requireElement('[data-announcer]');
     this.catalogHeading = this.requireElement('#hub-title');
+    this.documentScrollLock = new DocumentScrollLock({
+      document: this.document,
+      window: this.window,
+    });
     this.systemInformationDialog = new SystemInformationDialog({
       document: this.document,
       runtimeKind: this.runtime.kind,
+      scrollLock: this.documentScrollLock,
     });
   }
 
@@ -142,6 +149,7 @@ export class HubController {
     this.errorCloseButton.removeEventListener('click', this.handleCloseClick);
     this.window.removeEventListener('popstate', this.handlePopState);
     this.systemInformationDialog.destroy();
+    this.documentScrollLock.destroy();
     this.removeFrame();
     this.resetProjectState(true);
     this.initialized = false;

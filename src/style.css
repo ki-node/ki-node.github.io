@@ -766,6 +766,7 @@ body.is-project-open {
     padding: clamp(1.25rem, 5vw, 2rem);
     overflow: auto;
     overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
 }
 
 .system-dialog__heading {

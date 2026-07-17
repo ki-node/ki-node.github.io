@@ -891,14 +891,27 @@ test('shows accessible system information from the lock file at constrained view
   page,
 }) => {
   await page.goto('/');
-  for (const viewport of [
-    { width: 393, height: 852 },
-    { width: 320, height: 568 },
-    { width: 390, height: 500 },
-    { width: 844, height: 390 },
+  for (const scenario of [
+    { viewport: { width: 393, height: 852 }, reducedMotion: false },
+    { viewport: { width: 320, height: 568 }, reducedMotion: false },
+    { viewport: { width: 390, height: 500 }, reducedMotion: false },
+    { viewport: { width: 844, height: 390 }, reducedMotion: true },
   ]) {
-    await page.setViewportSize(viewport);
-    await page.getByRole('button', { name: 'Systeminformationen' }).click();
+    await page.setViewportSize(scenario.viewport);
+    await page.emulateMedia({
+      reducedMotion: scenario.reducedMotion ? 'reduce' : 'no-preference',
+    });
+    await page.evaluate(() =>
+      window.scrollTo(0, document.documentElement.scrollHeight),
+    );
+    const initialScroll = await page.evaluate(() => ({
+      left: window.scrollX,
+      top: window.scrollY,
+    }));
+    expect(initialScroll.top).toBeGreaterThan(0);
+
+    const opener = page.getByRole('button', { name: 'Systeminformationen' });
+    await opener.click();
     const dialog = page.getByRole('dialog', { name: 'Systeminformationen' });
     await expect(dialog).toBeVisible();
     await expect(dialog).toContainText('Orbit');
@@ -913,14 +926,56 @@ test('shows accessible system information from the lock file at constrained view
         () => document.documentElement.scrollWidth <= window.innerWidth + 1,
       ),
     ).toBe(true);
+    await expect
+      .poll(() => page.evaluate(() => window.scrollY))
+      .toBe(initialScroll.top);
+
+    await page.mouse.move(2, 2);
+    await page.mouse.wheel(0, -400);
+    await expect
+      .poll(() => page.evaluate(() => window.scrollY))
+      .toBe(initialScroll.top);
+
+    const panel = dialog.locator('.system-dialog__panel');
+    const panelMetrics = await panel.evaluate((element) => ({
+      clientHeight: element.clientHeight,
+      scrollHeight: element.scrollHeight,
+    }));
+    if (
+      scenario.viewport.height <= 568 ||
+      scenario.viewport.width > scenario.viewport.height
+    ) {
+      expect(panelMetrics.scrollHeight).toBeGreaterThan(
+        panelMetrics.clientHeight,
+      );
+      const panelBounds = await panel.boundingBox();
+      if (!panelBounds) throw new Error('System dialog panel has no bounds.');
+      await page.mouse.move(
+        panelBounds.x + panelBounds.width / 2,
+        panelBounds.y + panelBounds.height / 2,
+      );
+      await page.mouse.wheel(0, 240);
+      await expect
+        .poll(() => panel.evaluate((element) => element.scrollTop))
+        .toBeGreaterThan(0);
+    }
     const results = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
       .analyze();
     expect(results.violations).toEqual([]);
     await page.keyboard.press('Escape');
     await expect(dialog).toBeHidden();
-    await expect(
-      page.getByRole('button', { name: 'Systeminformationen' }),
-    ).toBeFocused();
+    await expect(opener).toBeFocused();
+    await expect
+      .poll(() =>
+        page.evaluate(() => ({ left: window.scrollX, top: window.scrollY })),
+      )
+      .toEqual(initialScroll);
+
+    await page.mouse.move(2, Math.floor(scenario.viewport.height / 2));
+    await page.mouse.wheel(0, -400);
+    await expect
+      .poll(() => page.evaluate(() => window.scrollY))
+      .toBeLessThan(initialScroll.top);
   }
 });

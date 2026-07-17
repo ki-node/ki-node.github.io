@@ -74,6 +74,8 @@ describe('HubController', () => {
 
   beforeEach(() => {
     document.body.innerHTML = fixture;
+    document.body.removeAttribute('style');
+    document.documentElement.removeAttribute('style');
     window.history.replaceState({}, '', '/');
     Object.defineProperty(window, 'scrollX', { configurable: true, value: 0 });
     Object.defineProperty(window, 'scrollY', { configurable: true, value: 0 });
@@ -133,6 +135,29 @@ describe('HubController', () => {
     expect(document.activeElement).toBe(
       document.querySelector('[data-close-project]'),
     );
+  });
+
+  it('releases the document scroll lock when the Hub lifecycle is destroyed', () => {
+    const dialog = document.querySelector<HTMLDialogElement>(
+      '[data-system-dialog]',
+    );
+    if (!dialog) throw new Error('System dialog fixture is missing.');
+    dialog.showModal = vi.fn(() => dialog.setAttribute('open', ''));
+    dialog.close = vi.fn(() => {
+      dialog.removeAttribute('open');
+      dialog.dispatchEvent(new Event('close'));
+    });
+
+    document
+      .querySelector<HTMLButtonElement>('[data-open-system-dialog]')
+      ?.click();
+    expect(document.body.style.position).toBe('fixed');
+
+    controller.destroy();
+
+    expect(dialog.open).toBe(false);
+    expect(document.body.hasAttribute('style')).toBe(false);
+    expect(document.documentElement.hasAttribute('style')).toBe(false);
   });
 
   it('grants only Poster the sandbox and Permissions Policy needed by browser fallbacks', () => {

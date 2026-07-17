@@ -1,9 +1,11 @@
 import { createSystemInformation } from './system-information';
 import type { RuntimeKind } from './runtime';
+import type { DocumentScrollLockHandle } from './document-scroll-lock';
 
 interface SystemInformationDialogOptions {
   readonly document: Document;
   readonly runtimeKind: RuntimeKind;
+  readonly scrollLock: DocumentScrollLockHandle;
 }
 
 /** Owns the accessible, non-personal system-information dialog. */
@@ -15,8 +17,10 @@ export class SystemInformationDialog {
   private readonly version: HTMLElement;
   private readonly runtime: HTMLElement;
   private readonly projectList: HTMLElement;
+  private readonly scrollLock: DocumentScrollLockHandle;
   private readonly information;
   private initialized = false;
+  private scrollLocked = false;
   private returnFocus: HTMLElement | null = null;
 
   public constructor(options: SystemInformationDialogOptions) {
@@ -36,6 +40,7 @@ export class SystemInformationDialog {
       this.dialog,
       '[data-system-projects]',
     );
+    this.scrollLock = options.scrollLock;
     this.information = createSystemInformation(options.runtimeKind);
   }
 
@@ -54,6 +59,7 @@ export class SystemInformationDialog {
     this.closeButton.removeEventListener('click', this.handleClose);
     this.dialog.removeEventListener('close', this.handleClosed);
     if (this.dialog.open) this.dialog.close();
+    this.releaseScrollLock();
     this.returnFocus = null;
     this.initialized = false;
   }
@@ -61,17 +67,31 @@ export class SystemInformationDialog {
   private readonly handleOpen = () => {
     if (this.dialog.open) return;
     this.returnFocus = this.openButton;
-    this.dialog.showModal();
-    this.closeButton.focus({ preventScroll: true });
+    this.scrollLock.lock();
+    this.scrollLocked = true;
+    try {
+      this.dialog.showModal();
+      this.closeButton.focus({ preventScroll: true });
+    } catch {
+      this.releaseScrollLock();
+      this.returnFocus = null;
+    }
   };
 
   private readonly handleClose = () => this.dialog.close();
 
   private readonly handleClosed = () => {
+    this.releaseScrollLock();
     const target = this.returnFocus;
     this.returnFocus = null;
     if (target?.isConnected) target.focus({ preventScroll: true });
   };
+
+  private releaseScrollLock(): void {
+    if (!this.scrollLocked) return;
+    this.scrollLocked = false;
+    this.scrollLock.unlock();
+  }
 
   private render(): void {
     this.product.textContent = this.information.product;
